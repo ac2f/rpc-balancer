@@ -200,7 +200,6 @@ class RoundRobinWS {
         return res?.result;
     }
     async request(request) {
-        setTimeout(() => process.exit(), 3000);
         const res = await this.requestUntil(async () => {
             let provider = this.provider;
             if (!provider && this.providers.length > 1) {
