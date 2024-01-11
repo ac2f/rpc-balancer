@@ -1,33 +1,29 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WSProvider = void 0;
 const web3_1 = require("web3");
 class SubscriptionHandler {
+    id;
+    $listeners = {};
     get listeners() {
         return this.$listeners;
     }
+    emit = (event, message) => {
+        this.$listeners[event]?.(message);
+    };
+    on = (event, handler) => {
+        this.$listeners[event] = handler;
+    };
     constructor(id) {
-        this.$listeners = {};
-        this.emit = (event, message) => {
-            var _a, _b;
-            (_b = (_a = this.$listeners)[event]) === null || _b === void 0 ? void 0 : _b.call(_a, message);
-        };
-        this.on = (event, handler) => {
-            this.$listeners[event] = handler;
-        };
         this.id = id;
     }
 }
 class WSProvider extends web3_1.WebSocketProvider {
+    address;
+    $subscribeOnReconnect = [];
+    $requests = 0;
+    $available = false;
+    _disableClientOnError;
     get subscribeOnReconnect() {
         return this.$subscribeOnReconnect;
     }
@@ -37,25 +33,25 @@ class WSProvider extends web3_1.WebSocketProvider {
     get available() {
         return this.$available;
     }
+    pendingSubscriptions = {};
+    subscriptionsMapping = {};
     getSubscriptionById(id) {
         return this.subscriptionsMapping[id];
     }
-    onMessageHandler() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.on("message", (message) => {
-                if (message.method === "eth_subscription") {
-                    const subscriptionId = message.params.subscription;
-                    const subscription = this.getSubscriptionById(subscriptionId);
-                    if (subscription) {
-                        subscription.emit("data", message.params.result);
-                    }
+    async onMessageHandler() {
+        this.on("message", (message) => {
+            if (message.method === "eth_subscription") {
+                const subscriptionId = message.params.subscription;
+                const subscription = this.getSubscriptionById(subscriptionId);
+                if (subscription) {
+                    subscription.emit("data", message.params.result);
                 }
-            });
+            }
         });
     }
     subscribe(subscription, disableAutoSubscribeOnReconnect) {
-        return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-            const response = yield this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
+        return new Promise(async (resolve, reject) => {
+            const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
             if (response.error) {
                 reject(new Error(`Event: ${subscription.eventName}\n${response.error}`));
                 return;
@@ -69,17 +65,17 @@ class WSProvider extends web3_1.WebSocketProvider {
             const handler = new SubscriptionHandler(response.result);
             this.subscriptionsMapping[response.result] = handler;
             resolve(handler);
-        }));
+        });
     }
     init() {
-        this.on("connect", (data) => __awaiter(this, void 0, void 0, function* () {
+        this.on("connect", async (data) => {
             this.$available = true;
             console.log("connected");
             for (const subscription of this.subscribeOnReconnect) {
                 this.subscribe(subscription);
             }
             this.onMessageHandler();
-        }));
+        });
         this.on("close", () => {
             this.$available = false;
             for (let subscription in this.subscriptionsMapping) {
@@ -100,11 +96,6 @@ class WSProvider extends web3_1.WebSocketProvider {
     }
     constructor(address, clientOptions, reconnect, disableClientOnError) {
         super(address, clientOptions, reconnect);
-        this.$subscribeOnReconnect = [];
-        this.$requests = 0;
-        this.$available = false;
-        this.pendingSubscriptions = {};
-        this.subscriptionsMapping = {};
         this.address = address;
         this._disableClientOnError = disableClientOnError;
         this.init();
