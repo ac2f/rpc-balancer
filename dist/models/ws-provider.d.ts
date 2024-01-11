@@ -22,6 +22,7 @@ export declare class WSProvider extends WebSocketProvider implements IWSProvider
     private subscriptionsMapping;
     getSubscriptionById(id: string): SubscriptionHandler;
     private onMessageHandler;
+    newRequest(): void;
     subscribe(subscription: ISubscription): Promise<ISubscriptionHandler>;
     subscribe(subscription: ISubscription, disableAutoSubscribeOnReconnect: true): Promise<ISubscriptionHandler>;
     private init;

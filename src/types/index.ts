@@ -49,6 +49,7 @@ export interface IWSProvider extends WebSocketProvider {
     address: string;
     available: boolean;
     requests: number;
+    newRequest(): void;
     subscribeOnReconnect: ISubscription[];
     subscribe(subscription: ISubscription): Promise<ISubscriptionHandler>;
     getSubscriptionById(id: string): ISubscriptionHandler | undefined;

@@ -48,8 +48,12 @@ class WSProvider extends web3_1.WebSocketProvider {
             }
         });
     }
+    newRequest() {
+        this.$requests += 1;
+    }
     subscribe(subscription, disableAutoSubscribeOnReconnect) {
         return new Promise(async (resolve, reject) => {
+            this.newRequest();
             const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
             if (response.error) {
                 reject(new Error(`Event: ${subscription.eventName}\n${response.error}`));

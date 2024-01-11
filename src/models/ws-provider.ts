@@ -47,10 +47,14 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
             }
         });
     }
+    public newRequest() {
+        this.$requests += 1;
+    }
     public subscribe(subscription: ISubscription): Promise<ISubscriptionHandler>;
     public subscribe(subscription: ISubscription, disableAutoSubscribeOnReconnect: true): Promise<ISubscriptionHandler>;
     public subscribe(subscription: ISubscription, disableAutoSubscribeOnReconnect?: true): Promise<ISubscriptionHandler> {
         return new Promise(async (resolve, reject) => {
+            this.newRequest();
             const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
             if (response.error) {
                 reject(new Error(`Event: ${subscription.eventName}\n${response.error}`));

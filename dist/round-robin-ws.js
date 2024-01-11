@@ -166,6 +166,7 @@ class RoundRobinWS {
             if (!provider) {
                 throw new Error("no provider available");
             }
+            provider.newRequest();
             return await provider.request({
                 id: provider.requests + 1,
                 jsonrpc: "2.0",
@@ -187,6 +188,7 @@ class RoundRobinWS {
             if (!provider) {
                 throw new Error("no provider available");
             }
+            provider.newRequest();
             const response = await provider.request({
                 id: provider.requests + 1,
                 jsonrpc: "2.0",
@@ -212,7 +214,7 @@ class RoundRobinWS {
             if (!provider) {
                 throw new Error("no provider available");
             }
-            console.log(provider.available);
+            provider.newRequest();
             const response = await provider.request({
                 id: provider.requests + 1,
                 jsonrpc: "2.0",
