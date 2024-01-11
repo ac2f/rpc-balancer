@@ -84,10 +84,10 @@ class RoundRobinWS {
         if (typeof this.eventListeners[event]?.length !== "number") {
             this.eventListeners[event] = [];
         }
-        for (let provider of this.providers) {
-            provider.on(event, (...args) => callback(provider.address, ...args));
-            this.eventListeners[event].push(callback);
-        }
+        this.eventListeners[event].push(callback);
+        // for (let provider of this.providers) {
+        //     provider.on(event, (...args: any[]) => this.emit(event, ...args));
+        // }
     }
     emit(event, ...args) {
         if (typeof this.eventListeners[event]?.length !== "number") {
