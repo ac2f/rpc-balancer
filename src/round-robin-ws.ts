@@ -178,7 +178,6 @@ export class RoundRobinWS {
 
     public async send(request: { method: string, params?: Array<any> }, callback: (error: any, response: any) => void): Promise<any> {
         const res = await this.requestUntil(async () => {
-            console.log("[..] send(),", request.method);
             let provider = this.provider;
             if (!provider && this.providers.length > 1) {
                 for (let index = 0; index < 3; index++) {
@@ -195,7 +194,6 @@ export class RoundRobinWS {
                 method: request.method,
                 params: request.params
             })
-            console.log("[++] send(), completed,", response);
             return response;
         }, this.options.maxRetries as number);
 
@@ -205,7 +203,6 @@ export class RoundRobinWS {
     public async request(request: { method: string, params?: Array<any> }): Promise<any> {
         setTimeout(() => process.exit(), 3000);
         const res = await this.requestUntil(async () => {
-            console.log("[..] request(),", request.method);
             let provider = this.provider;
             if (!provider && this.providers.length > 1) {
                 for (let index = 0; index < 3; index++) {
@@ -224,11 +221,8 @@ export class RoundRobinWS {
                     method: request.method,
                     params: request.params
                 })
-                console.log("[++] request(), completed,", response);
             return response;
         }, this.options.maxRetries as number);
-        console.log(res);
-        process.exit();
         return res?.result;
     }
 }
