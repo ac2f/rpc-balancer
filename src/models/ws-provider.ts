@@ -74,7 +74,6 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     private init() {
         this.on("connect", async (data) => {
             this.$available = true;
-            console.log("connected");
             for (const subscription of this.subscribeOnReconnect) {
                 this.subscribe(subscription);
             }
@@ -87,7 +86,6 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
             }
         });
         this.on("error", (error: any) => {
-            console.log("on error", error);
             if (this._disableClientOnError && this._disableClientOnError(error)) {
                 this.$available = false;
                 try {

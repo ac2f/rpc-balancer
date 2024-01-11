@@ -85,16 +85,11 @@ class RoundRobinWS {
             this.eventListeners[event] = [];
         }
         this.eventListeners[event].push(callback);
-        // for (let provider of this.providers) {
-        //     provider.on(event, (...args: any[]) => this.emit(event, ...args));
-        // }
     }
     emit(event, ...args) {
         if (typeof this.eventListeners[event]?.length !== "number") {
-            console.log("no listeners for the event");
             this.eventListeners[event] = [];
         }
-        console.log("event listeners", this.eventListeners[event].length);
         for (let listener of this.eventListeners[event]) {
             listener(...args);
         }
@@ -106,7 +101,6 @@ class RoundRobinWS {
             subscriptionIds.push(_subscription.id);
             _subscription.on("data", (data) => {
                 if (!this.subscriptionResults[data.transactionHash]) {
-                    console.log("hash not exists", data.transactionHash, this.subscriptionResults[data.transactionHash]);
                     this.subscriptionResults[data.transactionHash] = data;
                     this.emit("data", data);
                 }
@@ -115,7 +109,7 @@ class RoundRobinWS {
         return {
             id: subscription.eventName + subscriptionIds.join(";"),
             on: (event, handler) => {
-                this.on(event, handler);
+                // implementation cancelled
             }
         };
     }

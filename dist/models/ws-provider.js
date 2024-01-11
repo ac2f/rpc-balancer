@@ -73,7 +73,6 @@ class WSProvider extends web3_1.WebSocketProvider {
     init() {
         this.on("connect", async (data) => {
             this.$available = true;
-            console.log("connected");
             for (const subscription of this.subscribeOnReconnect) {
                 this.subscribe(subscription);
             }
@@ -86,7 +85,6 @@ class WSProvider extends web3_1.WebSocketProvider {
             }
         });
         this.on("error", (error) => {
-            console.log("on error", error);
             if (this._disableClientOnError && this._disableClientOnError(error)) {
                 this.$available = false;
                 try {
