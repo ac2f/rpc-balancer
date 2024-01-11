@@ -1,3 +1,4 @@
+import { ProviderConnectInfo } from "web3";
 import { IWSConfig, RPC, ISubscriptionHandler, ISubscription } from "./types";
 export declare class RoundRobinWS {
     queue: RPC[];
@@ -14,8 +15,10 @@ export declare class RoundRobinWS {
     private _validateLock;
     private _autoDeleteSubscriptionResults;
     private _autoSortProviders;
+    on(event: string, callback: (...args: any[]) => void): void;
+    emit(event: string, ...args: any[]): void;
     subscribe(subscription: ISubscription): Promise<ISubscriptionHandler>;
-    init(rpcList: string[]): Promise<RoundRobinWS>;
+    init(rpcList: string[]): Promise<ProviderConnectInfo[]>;
     private requestUntil;
     sendAsync(request: {
         method: string;

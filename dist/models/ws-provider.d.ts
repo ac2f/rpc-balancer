@@ -1,13 +1,13 @@
 import { WebSocketProvider } from "web3";
-import { ISubscription, ISubscriptionHandler, IWSConfig, IWSProvider, SubscriptionEvent } from "../types";
+import { ISubscription, ISubscriptionHandler, IWSConfig, IWSProvider } from "../types";
 declare class SubscriptionHandler implements ISubscriptionHandler {
     readonly id: string;
     private $listeners;
     get listeners(): {
         [event: string]: (...args: any[]) => void;
     };
-    emit: (event: SubscriptionEvent, message: any) => void;
-    on: (event: SubscriptionEvent, handler: (data: string) => void) => void;
+    emit: (event: string, message: any) => void;
+    on: (event: string, handler: (data: string) => void) => void;
     constructor(id: string);
 }
 export declare class WSProvider extends WebSocketProvider implements IWSProvider {
@@ -19,7 +19,6 @@ export declare class WSProvider extends WebSocketProvider implements IWSProvider
     get subscribeOnReconnect(): ISubscription[];
     get requests(): number;
     get available(): boolean;
-    private pendingSubscriptions;
     private subscriptionsMapping;
     getSubscriptionById(id: string): SubscriptionHandler;
     private onMessageHandler;

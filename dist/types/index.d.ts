@@ -22,6 +22,7 @@ export interface IHTTPConfig {
 export interface IWSConfig extends IHTTPConfig {
     cache: undefined;
     reconnect: ReconnectOptions;
+    connectionTimeout: number;
     client: ClientOptions | ClientRequestArgs;
     disableClientOnError: (error: any) => boolean;
 }

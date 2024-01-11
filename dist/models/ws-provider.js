@@ -33,7 +33,6 @@ class WSProvider extends web3_1.WebSocketProvider {
     get available() {
         return this.$available;
     }
-    pendingSubscriptions = {};
     subscriptionsMapping = {};
     getSubscriptionById(id) {
         return this.subscriptionsMapping[id];

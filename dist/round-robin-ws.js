@@ -15,6 +15,7 @@ class RoundRobinWS {
     options = {
         maxRetries: 5,
         client: {},
+        connectionTimeout: 1000 * 30,
         reconnect: {
             autoReconnect: true,
             delay: 2000,
@@ -79,6 +80,22 @@ class RoundRobinWS {
             this.providers = _prototype;
         }
     }
+    on(event, callback) {
+        if (typeof this.eventListeners[event]?.length !== "number") {
+            this.eventListeners[event] = [];
+        }
+        for (let provider of this.providers) {
+            provider.on(event, (...args) => callback(provider.address, ...args));
+        }
+    }
+    emit(event, ...args) {
+        if (typeof this.eventListeners[event] !== "number") {
+            this.eventListeners[event] = [];
+        }
+        for (let listener of this.eventListeners[event]) {
+            listener(...args);
+        }
+    }
     async subscribe(subscription) {
         let subscriptionIds = [];
         for (let provider of this.providers) {
@@ -88,28 +105,39 @@ class RoundRobinWS {
                 if (!this.subscriptionResults[data.transactionHash]) {
                     7;
                     this.subscriptionResults[data.transactionHash] = data;
-                    this.eventListeners["data"]?.(data);
+                    this.emit("data", data);
                 }
             });
         }
         return {
             id: subscription.eventName + subscriptionIds.join(";"),
             on: (event, handler) => {
-                this.eventListeners[event] = handler;
+                this.on(event, handler);
             }
         };
     }
     async init(rpcList) {
+        let results = [];
         for (let i = 0; i < rpcList.length; i++) {
-            this.currentProviderIndex = i;
-            const address = rpcList[i];
-            if (!new RegExp(`^(ws|wss):\/\/`).test(address)) {
-                throw new Error("Address must be a websocket endpoint");
-            }
-            const provider = new ws_provider_1.WSProvider(address, this.options.client, this.options.reconnect, this.options.disableClientOnError);
-            this.providers.push(provider);
+            const result = await new Promise(async (resolve, reject) => {
+                this.currentProviderIndex = i;
+                const address = rpcList[i];
+                if (!new RegExp(`^(ws|wss):\/\/`).test(address)) {
+                    throw new Error("Address must be a websocket endpoint");
+                }
+                const provider = new ws_provider_1.WSProvider(address, this.options.client, this.options.reconnect, this.options.disableClientOnError);
+                const rejectTimeout = setTimeout(() => {
+                    reject(new Error(`connection to "${address}" timed out`));
+                }, this.options.connectionTimeout);
+                provider.on("connect", (providerConnectionInfo) => {
+                    resolve(providerConnectionInfo);
+                    clearTimeout(rejectTimeout);
+                });
+                this.providers.push(provider);
+            });
+            results.push(result);
         }
-        return this;
+        return results;
     }
     async requestUntil(request, maxRetries, cancel, throwErrorIfCancelled = true) {
         for (let retryCount = 0; retryCount < maxRetries; retryCount) {
