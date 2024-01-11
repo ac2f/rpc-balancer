@@ -207,21 +207,25 @@ class RoundRobinWS {
                 for (let index = 0; index < 3; index++) {
                     await new Promise(r => setTimeout(r, 1000));
                     provider = this.provider;
+                    if (provider)
+                        break;
                 }
             }
             if (!provider) {
                 throw new Error("no provider available");
             }
-            const response = await provider.request({
-                id: provider.requests + 1,
-                jsonrpc: "2.0",
-                method: request.method,
-                params: request.params
-            });
-            console.log("[++] request(), completed,", response);
-            return response;
+            console.log(provider.available);
+            process.exit();
+            // const response = await provider.request({
+            //     id: provider.requests + 1,
+            //     jsonrpc: "2.0",
+            //     method: request.method,
+            //     params: request.params
+            // })
+            // console.log("[++] request(), completed,", response);
+            // return response;
         }, this.options.maxRetries);
-        return res?.result;
+        // return res?.result;
     }
 }
 exports.RoundRobinWS = RoundRobinWS;
