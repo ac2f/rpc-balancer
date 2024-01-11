@@ -89,7 +89,7 @@ class RoundRobinWS {
         }
     }
     emit(event, ...args) {
-        if (typeof this.eventListeners[event] !== "number") {
+        if (typeof this.eventListeners[event]?.length !== "number") {
             this.eventListeners[event] = [];
         }
         for (let listener of this.eventListeners[event]) {
@@ -102,8 +102,9 @@ class RoundRobinWS {
             const _subscription = await provider.subscribe(subscription);
             subscriptionIds.push(_subscription.id);
             _subscription.on("data", (data) => {
+                console.log("round-robin-ws new data from subscription ");
                 if (!this.subscriptionResults[data.transactionHash]) {
-                    7;
+                    console.log("emitting");
                     this.subscriptionResults[data.transactionHash] = data;
                     this.emit("data", data);
                 }
