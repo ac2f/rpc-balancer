@@ -87,6 +87,7 @@ export class RoundRobinWS {
         }
         for (let provider of this.providers) {
             provider.on(event, (...args: any[]) => callback(provider.address, ...args));
+            this.eventListeners[event].push(callback);
         }
     }
     emit(event: string, ...args: any[]) {
