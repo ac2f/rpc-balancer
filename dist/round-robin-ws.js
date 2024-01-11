@@ -177,6 +177,7 @@ class RoundRobinWS {
     }
     async send(request, callback) {
         const res = await this.requestUntil(async () => {
+            console.log("[..] send(),", request.method);
             let provider = this.provider;
             if (!provider && this.providers.length > 1) {
                 for (let index = 0; index < 3; index++) {
@@ -187,17 +188,20 @@ class RoundRobinWS {
             if (!provider) {
                 throw new Error("no provider available");
             }
-            return await provider.request({
+            const response = await provider.request({
                 id: provider.requests + 1,
                 jsonrpc: "2.0",
                 method: request.method,
                 params: request.params
             });
+            console.log("[++] send(), completed,", response);
+            return response;
         }, this.options.maxRetries);
         return res?.result;
     }
     async request(request) {
         const res = await this.requestUntil(async () => {
+            console.log("[..] request(),", request.method);
             let provider = this.provider;
             if (!provider && this.providers.length > 1) {
                 for (let index = 0; index < 3; index++) {
@@ -208,12 +212,14 @@ class RoundRobinWS {
             if (!provider) {
                 throw new Error("no provider available");
             }
-            return await provider.request({
+            const response = await provider.request({
                 id: provider.requests + 1,
                 jsonrpc: "2.0",
                 method: request.method,
                 params: request.params
             });
+            console.log("[++] request(), completed,", response);
+            return response;
         }, this.options.maxRetries);
         return res?.result;
     }

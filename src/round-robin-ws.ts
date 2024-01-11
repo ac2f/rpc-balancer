@@ -178,6 +178,7 @@ export class RoundRobinWS {
 
     public async send(request: { method: string, params?: Array<any> }, callback: (error: any, response: any) => void): Promise<any> {
         const res = await this.requestUntil(async () => {
+            console.log("[..] send(),", request.method);
             let provider = this.provider;
             if (!provider && this.providers.length > 1) {
                 for (let index = 0; index < 3; index++) {
@@ -188,12 +189,14 @@ export class RoundRobinWS {
             if (!provider) {
                 throw new Error("no provider available");
             }
-            return await provider.request({
+            const response = await provider.request({
                 id: provider.requests + 1,
                 jsonrpc: "2.0",
                 method: request.method,
                 params: request.params
             })
+            console.log("[++] send(), completed,", response);
+            return response;
         }, this.options.maxRetries as number);
 
         return res?.result;
@@ -201,6 +204,7 @@ export class RoundRobinWS {
 
     public async request(request: { method: string, params?: Array<any> }): Promise<any> {
         const res = await this.requestUntil(async () => {
+            console.log("[..] request(),", request.method);
             let provider = this.provider;
             if (!provider && this.providers.length > 1) {
                 for (let index = 0; index < 3; index++) {
@@ -211,12 +215,14 @@ export class RoundRobinWS {
             if (!provider) {
                 throw new Error("no provider available");
             }
-            return await provider.request({
+            const response = await provider.request({
                 id: provider.requests + 1,
                 jsonrpc: "2.0",
                 method: request.method,
                 params: request.params
             })
+            console.log("[++] request(), completed,", response);
+            return response;
         }, this.options.maxRetries as number);
 
         return res?.result;
