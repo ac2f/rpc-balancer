@@ -1,5 +1,5 @@
 import { WebSocketProvider } from "web3";
-import { ISubscription, ISubscriptionHandler, IWSConfig, IWSProvider, SubscriptionEvent, SubscriptionMapping } from "../types";
+import { ISubscription, ISubscriptionHandler, IWSConfig, IWSProvider, SubscriptionMapping } from "../types";
 
 class SubscriptionHandler implements ISubscriptionHandler {
     public readonly id: string;
@@ -7,10 +7,10 @@ class SubscriptionHandler implements ISubscriptionHandler {
     public get listeners() {
         return this.$listeners;
     }
-    public emit: (event: SubscriptionEvent, message: any) => void = (event, message) => {
+    public emit: (event: string, message: any) => void = (event, message) => {
         this.$listeners[event]?.(message);
     };
-    public on: (event: SubscriptionEvent, handler: (data: string) => void) => void = (event, handler) => {
+    public on: (event: string, handler: (data: string) => void) => void = (event, handler) => {
         this.$listeners[event] = handler;
     }
     constructor(id: string) {
@@ -23,7 +23,7 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     private $requests: number = 0;
     private $available: boolean = false;
     private _disableClientOnError?: (data: any) => boolean;
-     public get subscribeOnReconnect() {
+    public get subscribeOnReconnect() {
         return this.$subscribeOnReconnect;
     }
     public get requests(): number {
@@ -32,7 +32,6 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     public get available(): boolean {
         return this.$available;
     }
-    private pendingSubscriptions: SubscriptionMapping = {};
     private subscriptionsMapping: { [id: string]: SubscriptionHandler } = {};
     public getSubscriptionById(id: string) {
         return this.subscriptionsMapping[id];
@@ -59,7 +58,7 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
             }
             if (!disableAutoSubscribeOnReconnect) {
                 const _subscriptionStr = JSON.stringify(subscription);
-                if(!this.$subscribeOnReconnect.find(subscription => JSON.stringify(subscription) === _subscriptionStr)) {
+                if (!this.$subscribeOnReconnect.find(subscription => JSON.stringify(subscription) === _subscriptionStr)) {
                     this.$subscribeOnReconnect.push(subscription);
                 }
             }
@@ -83,7 +82,7 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
                 delete this.subscriptionsMapping[subscription];
             }
         });
-        this.on("error", (error: any ) => {
+        this.on("error", (error: any) => {
             console.log("on error", error);
             if (this._disableClientOnError && this._disableClientOnError(error)) {
                 this.$available = false;

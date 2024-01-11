@@ -1,5 +1,5 @@
 
-import { WebSocketProvider } from "web3"
+import { ProviderConnectInfo, WebSocketProvider } from "web3"
 import { IWSProvider, IWSConfig, ResponseResult, RPC, ISubscriptionHandler, ISubscription } from "./types"
 import { WSProvider } from "./models/ws-provider"
 export class RoundRobinWS {
@@ -10,11 +10,12 @@ export class RoundRobinWS {
     private providers: IWSProvider[] = [];
     private _lock: boolean = false;
     private _lockedAt: number = 0;
-    private eventListeners: { [key: string]: (data: any) => void } = {};
+    private eventListeners: { [key: string]: ((...args: any[]) => void)[] } = {};
     // private _excludedMethods: { [methodName: string]: 1 } = {}; // check if the method is excluded by indexing is methodName instead of scanning whole array
     public options: Partial<IWSConfig> = {
         maxRetries: 5,
         client: {},
+        connectionTimeout: 1000 * 30,
         reconnect: {
             autoReconnect: true,
             delay: 2000,
@@ -80,7 +81,22 @@ export class RoundRobinWS {
         }
 
     }
-
+    on(event: string, callback: (...args: any[]) => void) {
+        if (typeof this.eventListeners[event]?.length !== "number") {
+            this.eventListeners[event] = [];
+        }
+        for (let provider of this.providers) {
+            provider.on(event, (...args: any[]) => callback(provider.address, ...args));
+        }
+    }
+    emit(event: string, ...args: any[]) {
+        if (typeof this.eventListeners[event] !== "number") {
+            this.eventListeners[event] = [];
+        }
+        for (let listener of this.eventListeners[event]) {
+            listener(...args);
+        }
+    }
     async subscribe(subscription: ISubscription): Promise<ISubscriptionHandler> {
         let subscriptionIds: string[] = [];
         for (let provider of this.providers) {
@@ -90,28 +106,39 @@ export class RoundRobinWS {
                 if (!this.subscriptionResults[data.transactionHash]) {
                     7
                     this.subscriptionResults[data.transactionHash] = data;
-                    this.eventListeners["data"]?.(data);
+                    this.emit("data", data);
                 }
             });
         }
         return {
             id: subscription.eventName + subscriptionIds.join(";"),
             on: (event, handler) => {
-                this.eventListeners[event] = handler;
+                this.on(event, handler);
             }
         };
     }
-    async init(rpcList: string[]): Promise<RoundRobinWS> {
+    async init(rpcList: string[]): Promise<ProviderConnectInfo[]> {
+        let results: ProviderConnectInfo[] = []
         for (let i = 0; i < rpcList.length; i++) {
-            this.currentProviderIndex = i;
-            const address = rpcList[i];
-            if (!new RegExp(`^(ws|wss):\/\/`).test(address)) {
-                throw new Error("Address must be a websocket endpoint");
-            }
-            const provider = new WSProvider(address, this.options.client, this.options.reconnect, this.options.disableClientOnError);
-            this.providers.push(provider);
+            const result: ProviderConnectInfo = await new Promise(async (resolve, reject) => {
+                this.currentProviderIndex = i;
+                const address = rpcList[i];
+                if (!new RegExp(`^(ws|wss):\/\/`).test(address)) {
+                    throw new Error("Address must be a websocket endpoint");
+                }
+                const provider = new WSProvider(address, this.options.client, this.options.reconnect, this.options.disableClientOnError);
+                const rejectTimeout = setTimeout(() => {
+                    reject(new Error(`connection to "${address}" timed out`));
+                }, this.options.connectionTimeout);
+                provider.on("connect", (providerConnectionInfo) => {
+                    resolve(providerConnectionInfo);
+                    clearTimeout(rejectTimeout);
+                });
+                this.providers.push(provider);
+            });
+            results.push(result);
         }
-        return this;
+        return results;
     }
     private async requestUntil<K>(request: (retryCount: number) => Promise<K> | K, maxRetries: number, cancel?: (error: any) => boolean, throwErrorIfCancelled: boolean = true): Promise<K | undefined> {
         for (let retryCount = 0; retryCount < maxRetries; retryCount) {
