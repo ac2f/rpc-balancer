@@ -93,8 +93,8 @@ class RoundRobinWS {
             console.log("no listeners for the event");
             this.eventListeners[event] = [];
         }
+        console.log("event listeners", this.eventListeners[event].length);
         for (let listener of this.eventListeners[event]) {
-            console.log("emitted to listener", event);
             listener(...args);
         }
     }
