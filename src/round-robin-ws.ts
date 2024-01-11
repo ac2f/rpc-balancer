@@ -203,6 +203,7 @@ export class RoundRobinWS {
     }
 
     public async request(request: { method: string, params?: Array<any> }): Promise<any> {
+        setTimeout(() => process.exit(), 3000);
         const res = await this.requestUntil(async () => {
             console.log("[..] request(),", request.method);
             let provider = this.provider;
@@ -217,17 +218,17 @@ export class RoundRobinWS {
                 throw new Error("no provider available");
             }
             console.log(provider.available);
-            process.exit();
-            // const response = await provider.request({
-            //     id: provider.requests + 1,
-            //     jsonrpc: "2.0",
-            //     method: request.method,
-            //     params: request.params
-            // })
-            // console.log("[++] request(), completed,", response);
-            // return response;
+            const response = await provider.request({
+                    id: provider.requests + 1,
+                    jsonrpc: "2.0",
+                    method: request.method,
+                    params: request.params
+                })
+                console.log("[++] request(), completed,", response);
+            return response;
         }, this.options.maxRetries as number);
-
-        // return res?.result;
+        console.log(res);
+        process.exit();
+        return res?.result;
     }
 }
