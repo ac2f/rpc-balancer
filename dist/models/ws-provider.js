@@ -65,7 +65,7 @@ class WSProvider extends web3_1.WebSocketProvider {
                 const subscriptionId = message.params.subscription;
                 const subscription = this.getSubscriptionById(subscriptionId);
                 if (subscription) {
-                    console.log("emitting");
+                    console.log("emitting", subscription);
                     subscription.emit("data", message.params.result);
                 }
                 else {
