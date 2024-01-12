@@ -102,8 +102,7 @@ class RoundRobinWS {
             const _subscription = await provider.subscribe(_subscriptionWithAlias);
             subscriptionIds.push(_subscription.id);
             _subscription.on("updateSubscriptionId", (data) => {
-                console.log("id changed");
-                process.exit();
+                console.log("id changed | ".repeat(150));
             });
             _subscription.on("data", (data) => {
                 if (!this.subscriptionResults[data.transactionHash]) {
