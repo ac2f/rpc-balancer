@@ -59,7 +59,6 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     private async onMessageHandler() {
         this.on("message", (message: any) => {
             if (message.method === "eth_subscription") {
-                console.log("subscription data");
                 const subscriptionId: string = message.params.subscription;
                 const subscription = this.getSubscriptionById(subscriptionId);
                 if (subscription) {

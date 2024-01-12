@@ -60,7 +60,6 @@ class WSProvider extends web3_1.WebSocketProvider {
     async onMessageHandler() {
         this.on("message", (message) => {
             if (message.method === "eth_subscription") {
-                console.log("subscription data");
                 const subscriptionId = message.params.subscription;
                 const subscription = this.getSubscriptionById(subscriptionId);
                 if (subscription) {
