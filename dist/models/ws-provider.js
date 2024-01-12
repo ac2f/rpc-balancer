@@ -15,7 +15,6 @@ class SubscriptionHandler {
         if (event === "updateSubscriptionId") {
             this.$id = message;
         }
-        console.log(`[${this.id}] emitted", ${event}`);
         this.$listeners[event]?.(message);
     };
     on = (event, handler) => {
@@ -67,10 +66,6 @@ class WSProvider extends web3_1.WebSocketProvider {
                 if (subscription) {
                     subscription.emit("data", message.params.result);
                 }
-                else {
-                    console.log("no subscription", this.subscriptionAliasToId, this.subscriptionIdToAlias, message);
-                    process.exit(1);
-                }
             }
         });
     }
@@ -111,8 +106,7 @@ class WSProvider extends web3_1.WebSocketProvider {
             this.$available = true;
             console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
             for (const subscription of this.subscribeOnReconnect) {
-                console.log("auto subscribing to", subscription.eventName);
-                this.subscribe(subscription).then(subscription => { });
+                this.subscribe(subscription);
             }
             this.onMessageHandler();
         });

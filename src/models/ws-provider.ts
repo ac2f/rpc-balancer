@@ -14,7 +14,6 @@ class SubscriptionHandler implements ISubscriptionHandler {
         if (event === "updateSubscriptionId") {
             this.$id = message;
         }
-        console.log(`[${this.id}] emitted", ${event}`);
         this.$listeners[event]?.(message);
     };
     public on: (event: string, handler: (data: string) => void) => void = (event, handler) => {
@@ -65,9 +64,6 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
                 const subscription = this.getSubscriptionById(subscriptionId);
                 if (subscription) {
                     subscription.emit("data", message.params.result);
-                } else {
-                    console.log("no subscription", this.subscriptionAliasToId, this.subscriptionIdToAlias, message);
-                    process.exit(1);
                 }
             }
         });
@@ -110,8 +106,7 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
             this.$available = true;
             console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
             for (const subscription of this.subscribeOnReconnect) {
-                console.log("auto subscribing to", subscription.eventName)
-                this.subscribe(subscription).then(subscription => { });
+                this.subscribe(subscription);
             }
             this.onMessageHandler();
         });
