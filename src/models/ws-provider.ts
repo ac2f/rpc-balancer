@@ -93,8 +93,8 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
             let handler: SubscriptionHandler;
             handler = new SubscriptionHandler(response.result);
             let _cachedSubscription = this.getSubscriptionByAlias(subscription.alias);
+            this.subscriptionAliasToId[subscription.alias] = response.result;
             if (_cachedSubscription) {
-                this.subscriptionAliasToId[subscription.alias] = response.result;
                 _cachedSubscription.emit("updateSubscriptionId", response.result);
             }
             this.subscriptionIdToAlias[response.result] = subscription.alias;
