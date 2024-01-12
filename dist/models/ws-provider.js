@@ -100,7 +100,7 @@ class WSProvider extends web3_1.WebSocketProvider {
                 _cachedSubscription.emit("updateSubscriptionId", response.result);
             }
             this.subscriptionIdToAlias[response.result] = subscription.alias;
-            this.subscriptionsMapping[response.result] = handler;
+            this.subscriptionsMapping[subscription.alias] = handler;
             resolve(handler);
         });
     }
