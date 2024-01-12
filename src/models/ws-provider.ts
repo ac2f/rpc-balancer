@@ -43,19 +43,12 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     }
     private subscriptionsMapping: { [alias: string]: SubscriptionHandler } = {};
     private subscriptionIdToAlias: { [id: string]: string } = {};
-    private subscriptionAliasToId: { [alias: string]: string } = {};
-    public getSubscriptionAliasById(id: string): string {
-        return this.subscriptionIdToAlias[id];
-    }
-    public getSubscriptionIdByAlias(alias: string): string {
-        return this.subscriptionAliasToId[alias];
-    }
+
     public getSubscriptionByAlias(alias: string) {
         return this.subscriptionsMapping[alias];
     }
     public getSubscriptionById(id: string) {
-        const aliasById = this.getSubscriptionAliasById(id);
-        return this.subscriptionsMapping[aliasById];
+        return this.subscriptionsMapping[this.subscriptionIdToAlias[id]];
     }
     private async onMessageHandler() {
         this.on("message", (message: any) => {
@@ -89,7 +82,6 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
             }
             let handler: SubscriptionHandler;
             let _cachedSubscription = this.getSubscriptionByAlias(subscription.alias);
-            this.subscriptionAliasToId[subscription.alias] = response.result;
             if (_cachedSubscription) {
                 _cachedSubscription.emit("updateSubscriptionId", response.result);
                 handler = _cachedSubscription;
@@ -114,7 +106,6 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
             this.$available = false;
             for (let subscription in this.subscriptionsMapping) {
                 delete this.subscriptionIdToAlias[subscription];
-                delete this.subscriptionsMapping[subscription];
             }
         });
         this.on("error", (error: any) => {

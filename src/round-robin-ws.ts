@@ -64,8 +64,8 @@ export class RoundRobinWS {
         while (true) {
             await new Promise(r => setTimeout(r, 1000 * 60));
             const keys = Object.keys(this.subscriptionResults);
-            if (keys.length >= 700) {
-                for (const key of keys.slice(0, 350)) {
+            if (keys.length >= 200) {
+                for (const key of keys.slice(0, 150)) {
                     delete this.subscriptionResults[key];
                 }
             }

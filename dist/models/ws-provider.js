@@ -44,19 +44,11 @@ class WSProvider extends web3_1.WebSocketProvider {
     }
     subscriptionsMapping = {};
     subscriptionIdToAlias = {};
-    subscriptionAliasToId = {};
-    getSubscriptionAliasById(id) {
-        return this.subscriptionIdToAlias[id];
-    }
-    getSubscriptionIdByAlias(alias) {
-        return this.subscriptionAliasToId[alias];
-    }
     getSubscriptionByAlias(alias) {
         return this.subscriptionsMapping[alias];
     }
     getSubscriptionById(id) {
-        const aliasById = this.getSubscriptionAliasById(id);
-        return this.subscriptionsMapping[aliasById];
+        return this.subscriptionsMapping[this.subscriptionIdToAlias[id]];
     }
     async onMessageHandler() {
         this.on("message", (message) => {
@@ -88,7 +80,6 @@ class WSProvider extends web3_1.WebSocketProvider {
             }
             let handler;
             let _cachedSubscription = this.getSubscriptionByAlias(subscription.alias);
-            this.subscriptionAliasToId[subscription.alias] = response.result;
             if (_cachedSubscription) {
                 _cachedSubscription.emit("updateSubscriptionId", response.result);
                 handler = _cachedSubscription;
@@ -114,7 +105,6 @@ class WSProvider extends web3_1.WebSocketProvider {
             this.$available = false;
             for (let subscription in this.subscriptionsMapping) {
                 delete this.subscriptionIdToAlias[subscription];
-                delete this.subscriptionsMapping[subscription];
             }
         });
         this.on("error", (error) => {

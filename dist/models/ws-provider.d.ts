@@ -22,9 +22,6 @@ export declare class WSProvider extends WebSocketProvider implements IWSProvider
     get available(): boolean;
     private subscriptionsMapping;
     private subscriptionIdToAlias;
-    private subscriptionAliasToId;
-    getSubscriptionAliasById(id: string): string;
-    getSubscriptionIdByAlias(alias: string): string;
     getSubscriptionByAlias(alias: string): SubscriptionHandler;
     getSubscriptionById(id: string): SubscriptionHandler;
     private onMessageHandler;
