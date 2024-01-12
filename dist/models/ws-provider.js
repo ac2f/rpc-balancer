@@ -34,15 +34,15 @@ class WSProvider extends web3_1.WebSocketProvider {
         return this.$available;
     }
     subscriptionsMapping = {};
-    getSubscriptionById(id) {
-        return this.subscriptionsMapping[id];
+    getSubscriptionByAlias(alias) {
+        return this.subscriptionsMapping[alias];
     }
     async onMessageHandler() {
         this.on("message", (message) => {
             if (message.method === "eth_subscription") {
                 console.log("subscription data");
-                const subscriptionId = message.params.subscription;
-                const subscription = this.getSubscriptionById(subscriptionId);
+                const subscriptionId = message.id;
+                const subscription = this.getSubscriptionByAlias(subscriptionId);
                 if (subscription) {
                     subscription.emit("data", message.params.result);
                 }
@@ -55,7 +55,7 @@ class WSProvider extends web3_1.WebSocketProvider {
     subscribe(subscription, disableAutoSubscribeOnReconnect) {
         return new Promise(async (resolve, reject) => {
             this.newRequest();
-            const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
+            const response = await this.request({ id: subscription.alias, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
             if (response.error) {
                 reject(new Error(`Event: ${subscription.eventName}\n${response.error}`));
                 return;
@@ -67,7 +67,7 @@ class WSProvider extends web3_1.WebSocketProvider {
                 }
             }
             const handler = new SubscriptionHandler(response.result);
-            this.subscriptionsMapping[response.result] = handler;
+            this.subscriptionsMapping[response.id] = handler;
             resolve(handler);
         });
     }
@@ -77,10 +77,7 @@ class WSProvider extends web3_1.WebSocketProvider {
             console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
             for (const subscription of this.subscribeOnReconnect) {
                 console.log("auto subscribing to", subscription.eventName);
-                this.subscribe(subscription).then(subscription => {
-                    // subscription.on("data", (data) => {
-                    // })
-                });
+                this.subscribe(subscription);
             }
             this.onMessageHandler();
         });

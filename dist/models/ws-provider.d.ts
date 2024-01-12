@@ -20,7 +20,7 @@ export declare class WSProvider extends WebSocketProvider implements IWSProvider
     get requests(): number;
     get available(): boolean;
     private subscriptionsMapping;
-    getSubscriptionById(id: string): SubscriptionHandler;
+    getSubscriptionByAlias(alias: string): SubscriptionHandler;
     private onMessageHandler;
     newRequest(): void;
     subscribe(subscription: ISubscription): Promise<ISubscriptionHandler>;

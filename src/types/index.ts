@@ -37,9 +37,6 @@ export interface CacheOptions {
     cacheClear: number
     excludeMethods: string[]
 }
-export type SubscriptionMapping = {
-    [id: string]: ISubscription;
-}
 export type SubscriptionEvent = "data";
 export interface ISubscriptionHandler {
     id: string;
@@ -52,7 +49,7 @@ export interface IWSProvider extends WebSocketProvider {
     newRequest(): void;
     subscribeOnReconnect: ISubscription[];
     subscribe(subscription: ISubscription): Promise<ISubscriptionHandler>;
-    getSubscriptionById(id: string): ISubscriptionHandler | undefined;
+    getSubscriptionByAlias(id: string): ISubscriptionHandler | undefined;
 }
 export interface ISubscriptionMeta {
     address?: string;
@@ -60,6 +57,7 @@ export interface ISubscriptionMeta {
     topics?: string[];
 }
 export interface ISubscription {
+    alias: string;
     eventName: string;
     meta?: ISubscriptionMeta;
 }

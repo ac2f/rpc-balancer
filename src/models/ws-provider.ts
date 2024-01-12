@@ -1,5 +1,5 @@
 import { WebSocketProvider } from "web3";
-import { ISubscription, ISubscriptionHandler, IWSConfig, IWSProvider, SubscriptionMapping } from "../types";
+import { ISubscription, ISubscriptionHandler, IWSConfig, IWSProvider } from "../types";
 
 class SubscriptionHandler implements ISubscriptionHandler {
     public readonly id: string;
@@ -32,16 +32,16 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     public get available(): boolean {
         return this.$available;
     }
-    private subscriptionsMapping: { [id: string]: SubscriptionHandler } = {};
-    public getSubscriptionById(id: string) {
-        return this.subscriptionsMapping[id];
+    private subscriptionsMapping: { [alias: string]: SubscriptionHandler } = {};
+    public getSubscriptionByAlias(alias: string) {
+        return this.subscriptionsMapping[alias];
     }
     private async onMessageHandler() {
         this.on("message", (message: any) => {
             if (message.method === "eth_subscription") {
                 console.log("subscription data");
-                const subscriptionId: string = message.params.subscription;
-                const subscription = this.getSubscriptionById(subscriptionId);
+                const subscriptionId: string = message.id;
+                const subscription = this.getSubscriptionByAlias(subscriptionId);
                 if (subscription) {
                     subscription.emit("data", message.params.result);
                 }
@@ -56,7 +56,7 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     public subscribe(subscription: ISubscription, disableAutoSubscribeOnReconnect?: true): Promise<ISubscriptionHandler> {
         return new Promise(async (resolve, reject) => {
             this.newRequest();
-            const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
+            const response = await this.request({ id: subscription.alias, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
             if (response.error) {
                 reject(new Error(`Event: ${subscription.eventName}\n${response.error}`));
                 return;
@@ -68,7 +68,7 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
                 }
             }
             const handler = new SubscriptionHandler(response.result);
-            this.subscriptionsMapping[response.result] = handler;
+            this.subscriptionsMapping[response.id as string] = handler;
             resolve(handler);
         });
     }
@@ -78,11 +78,7 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
             console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
             for (const subscription of this.subscribeOnReconnect) {
                 console.log("auto subscribing to", subscription.eventName)
-                this.subscribe(subscription).then(subscription => {
-                    // subscription.on("data", (data) => {
-
-                    // })
-                });
+                this.subscribe(subscription);
             }
             this.onMessageHandler();
         });
