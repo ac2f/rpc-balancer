@@ -39,6 +39,7 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     private async onMessageHandler() {
         this.on("message", (message: any) => {
             if (message.method === "eth_subscription") {
+                console.log("subscription data");
                 const subscriptionId: string = message.params.subscription;
                 const subscription = this.getSubscriptionById(subscriptionId);
                 if (subscription) {
@@ -77,7 +78,11 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
             console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
             for (const subscription of this.subscribeOnReconnect) {
                 console.log("auto subscribing to", subscription.eventName)
-                this.subscribe(subscription);
+                this.subscribe(subscription).then(subscription => {
+                    // subscription.on("data", (data) => {
+
+                    // })
+                });
             }
             this.onMessageHandler();
         });

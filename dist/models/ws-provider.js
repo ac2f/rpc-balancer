@@ -40,6 +40,7 @@ class WSProvider extends web3_1.WebSocketProvider {
     async onMessageHandler() {
         this.on("message", (message) => {
             if (message.method === "eth_subscription") {
+                console.log("subscription data");
                 const subscriptionId = message.params.subscription;
                 const subscription = this.getSubscriptionById(subscriptionId);
                 if (subscription) {
@@ -76,7 +77,10 @@ class WSProvider extends web3_1.WebSocketProvider {
             console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
             for (const subscription of this.subscribeOnReconnect) {
                 console.log("auto subscribing to", subscription.eventName);
-                this.subscribe(subscription);
+                this.subscribe(subscription).then(subscription => {
+                    // subscription.on("data", (data) => {
+                    // })
+                });
             }
             this.onMessageHandler();
         });
