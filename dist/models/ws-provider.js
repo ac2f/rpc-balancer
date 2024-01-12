@@ -15,6 +15,7 @@ class SubscriptionHandler {
         if (event === "updateSubscriptionId") {
             this.$id = message;
         }
+        console.log(`[${this.id}] emitted", ${event}`);
         this.$listeners[event]?.(message);
     };
     on = (event, handler) => {

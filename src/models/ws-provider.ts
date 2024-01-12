@@ -14,6 +14,7 @@ class SubscriptionHandler implements ISubscriptionHandler {
         if (event === "updateSubscriptionId") {
             this.$id = message;
         }
+        console.log(`[${this.id}] emitted", ${event}`);
         this.$listeners[event]?.(message);
     };
     public on: (event: string, handler: (data: string) => void) => void = (event, handler) => {
