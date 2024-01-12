@@ -65,7 +65,7 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
                     console.log("emitting");
                     subscription.emit("data", message.params.result);
                 } else {
-                    console.log("no subscription", this.subscriptionAliasToId, this.subscriptionIdToAlias);
+                    console.log("no subscription", this.subscriptionAliasToId, this.subscriptionIdToAlias, message);
                     process.exit(1);
                 }
             }
