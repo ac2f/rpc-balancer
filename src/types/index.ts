@@ -37,10 +37,10 @@ export interface CacheOptions {
     cacheClear: number
     excludeMethods: string[]
 }
-export type SubscriptionEvent = "data";
+// export type SubscriptionEvent = "data";
 export interface ISubscriptionHandler {
     id: string;
-    on: (event: SubscriptionEvent, handler: (data: any) => void) => void;
+    on: (event: string, handler: (data: any) => void) => void;
 }
 export interface IWSProvider extends WebSocketProvider {
     address: string;
