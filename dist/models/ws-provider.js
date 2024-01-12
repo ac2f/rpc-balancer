@@ -57,7 +57,6 @@ class WSProvider extends web3_1.WebSocketProvider {
     }
     getSubscriptionById(id) {
         const aliasById = this.getSubscriptionAliasById(id);
-        console.log({ aliasById });
         return this.subscriptionsMapping[aliasById];
     }
     async onMessageHandler() {

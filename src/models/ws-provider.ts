@@ -56,7 +56,6 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     }
     public getSubscriptionById(id: string) {
         const aliasById = this.getSubscriptionAliasById(id);
-        console.log({ aliasById })
         return this.subscriptionsMapping[aliasById];
     }
     private async onMessageHandler() {
