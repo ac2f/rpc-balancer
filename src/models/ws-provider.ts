@@ -74,7 +74,9 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     private init() {
         this.on("connect", async (data) => {
             this.$available = true;
+            console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
             for (const subscription of this.subscribeOnReconnect) {
+                console.log("auto subscribing to", subscription.eventName)
                 this.subscribe(subscription);
             }
             this.onMessageHandler();
