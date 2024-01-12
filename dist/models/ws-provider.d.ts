@@ -1,8 +1,9 @@
 import { WebSocketProvider } from "web3";
-import { ISubscription, ISubscriptionHandler, IWSConfig, IWSProvider } from "../types";
+import { ISubscriptionHandler, ISubscriptionWithAlias, IWSConfig, IWSProvider } from "../types";
 declare class SubscriptionHandler implements ISubscriptionHandler {
-    readonly id: string;
+    private $id;
     private $listeners;
+    get id(): string;
     get listeners(): {
         [event: string]: (...args: any[]) => void;
     };
@@ -16,15 +17,20 @@ export declare class WSProvider extends WebSocketProvider implements IWSProvider
     private $requests;
     private $available;
     private _disableClientOnError?;
-    get subscribeOnReconnect(): ISubscription[];
+    get subscribeOnReconnect(): ISubscriptionWithAlias[];
     get requests(): number;
     get available(): boolean;
     private subscriptionsMapping;
+    private subscriptionIdToAlias;
+    private subscriptionAliasToId;
+    getSubscriptionAliasById(id: string): string;
+    getSubscriptionIdByAlias(alias: string): string;
     getSubscriptionByAlias(alias: string): SubscriptionHandler;
+    getSubscriptionById(id: string): SubscriptionHandler;
     private onMessageHandler;
     newRequest(): void;
-    subscribe(subscription: ISubscription): Promise<ISubscriptionHandler>;
-    subscribe(subscription: ISubscription, disableAutoSubscribeOnReconnect: true): Promise<ISubscriptionHandler>;
+    subscribe(subscription: ISubscriptionWithAlias): Promise<ISubscriptionHandler>;
+    subscribe(subscription: ISubscriptionWithAlias, disableAutoSubscribeOnReconnect: true): Promise<ISubscriptionHandler>;
     private init;
     constructor(address: string, clientOptions?: IWSConfig["client"], reconnect?: IWSConfig["reconnect"], disableClientOnError?: IWSConfig["disableClientOnError"]);
 }

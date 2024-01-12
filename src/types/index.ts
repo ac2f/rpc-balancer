@@ -47,8 +47,8 @@ export interface IWSProvider extends WebSocketProvider {
     available: boolean;
     requests: number;
     newRequest(): void;
-    subscribeOnReconnect: ISubscription[];
-    subscribe(subscription: ISubscription): Promise<ISubscriptionHandler>;
+    subscribeOnReconnect: ISubscriptionWithAlias[];
+    subscribe(subscription: ISubscriptionWithAlias, disableAutoSubscribeOnReconnect?: boolean): Promise<ISubscriptionHandler>;
     getSubscriptionByAlias(id: string): ISubscriptionHandler | undefined;
 }
 export interface ISubscriptionMeta {
@@ -57,7 +57,10 @@ export interface ISubscriptionMeta {
     topics?: string[];
 }
 export interface ISubscription {
-    alias: string;
     eventName: string;
     meta?: ISubscriptionMeta;
+}
+
+export interface ISubscriptionWithAlias extends ISubscription {
+    alias: string;
 }

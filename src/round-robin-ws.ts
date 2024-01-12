@@ -2,6 +2,7 @@
 import { ProviderConnectInfo, WebSocketProvider } from "web3"
 import { IWSProvider, IWSConfig, ResponseResult, RPC, ISubscriptionHandler, ISubscription } from "./types"
 import { WSProvider } from "./models/ws-provider"
+import { v4 } from "uuid";
 export class RoundRobinWS {
     public queue: RPC[] = []
     public path = ''
@@ -97,8 +98,9 @@ export class RoundRobinWS {
     }
     async subscribe(subscription: ISubscription): Promise<ISubscriptionHandler> {
         let subscriptionIds: string[] = [];
+        let _subscriptionWithAlias: ISubscription & { alias: string } = { alias: v4(), ...subscription };
         for (let provider of this.providers) {
-            const _subscription = await provider.subscribe(subscription);
+            const _subscription = await provider.subscribe(_subscriptionWithAlias);
             subscriptionIds.push(_subscription.id);
             _subscription.on("data", (data) => {
                 if (!this.subscriptionResults[data.transactionHash]) {
@@ -108,7 +110,7 @@ export class RoundRobinWS {
             });
         }
         return {
-            id: subscription.eventName + subscriptionIds.join(";"),
+            id: _subscriptionWithAlias.alias,
             on: (event, handler) => {
                 // implementation cancelled
             }

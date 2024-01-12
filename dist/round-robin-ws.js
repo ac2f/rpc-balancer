@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RoundRobinWS = void 0;
 const ws_provider_1 = require("./models/ws-provider");
+const uuid_1 = require("uuid");
 class RoundRobinWS {
     queue = [];
     path = '';
@@ -96,8 +97,9 @@ class RoundRobinWS {
     }
     async subscribe(subscription) {
         let subscriptionIds = [];
+        let _subscriptionWithAlias = { alias: (0, uuid_1.v4)(), ...subscription };
         for (let provider of this.providers) {
-            const _subscription = await provider.subscribe(subscription);
+            const _subscription = await provider.subscribe(_subscriptionWithAlias);
             subscriptionIds.push(_subscription.id);
             _subscription.on("data", (data) => {
                 if (!this.subscriptionResults[data.transactionHash]) {
@@ -107,7 +109,7 @@ class RoundRobinWS {
             });
         }
         return {
-            id: subscription.eventName + subscriptionIds.join(";"),
+            id: _subscriptionWithAlias.alias,
             on: (event, handler) => {
                 // implementation cancelled
             }

@@ -3,19 +3,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WSProvider = void 0;
 const web3_1 = require("web3");
 class SubscriptionHandler {
-    id;
+    $id;
     $listeners = {};
+    get id() {
+        return this.$id;
+    }
     get listeners() {
         return this.$listeners;
     }
     emit = (event, message) => {
+        if (event === "updateSubscriptionId") {
+            this.$id = message;
+        }
         this.$listeners[event]?.(message);
     };
     on = (event, handler) => {
         this.$listeners[event] = handler;
     };
     constructor(id) {
-        this.id = id;
+        this.$id = id;
     }
 }
 class WSProvider extends web3_1.WebSocketProvider {
@@ -28,21 +34,35 @@ class WSProvider extends web3_1.WebSocketProvider {
         return this.$subscribeOnReconnect;
     }
     get requests() {
+        if (this.$requests > 1e7) {
+            this.$requests = 1;
+        }
         return this.$requests;
     }
     get available() {
         return this.$available;
     }
     subscriptionsMapping = {};
+    subscriptionIdToAlias = {};
+    subscriptionAliasToId = {};
+    getSubscriptionAliasById(id) {
+        return this.subscriptionIdToAlias[id];
+    }
+    getSubscriptionIdByAlias(alias) {
+        return this.subscriptionAliasToId[alias];
+    }
     getSubscriptionByAlias(alias) {
         return this.subscriptionsMapping[alias];
+    }
+    getSubscriptionById(id) {
+        return this.subscriptionsMapping[this.getSubscriptionAliasById(id)];
     }
     async onMessageHandler() {
         this.on("message", (message) => {
             if (message.method === "eth_subscription") {
-                console.log("subscription data", message);
-                const subscriptionId = message.id;
-                const subscription = this.getSubscriptionByAlias(subscriptionId);
+                console.log("subscription data");
+                const subscriptionId = message.params.subscription;
+                const subscription = this.getSubscriptionById(subscriptionId);
                 if (subscription) {
                     subscription.emit("data", message.params.result);
                 }
@@ -55,7 +75,7 @@ class WSProvider extends web3_1.WebSocketProvider {
     subscribe(subscription, disableAutoSubscribeOnReconnect) {
         return new Promise(async (resolve, reject) => {
             this.newRequest();
-            const response = await this.request({ id: subscription.alias, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
+            const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
             if (response.error) {
                 reject(new Error(`Event: ${subscription.eventName}\n${response.error}`));
                 return;
@@ -66,8 +86,15 @@ class WSProvider extends web3_1.WebSocketProvider {
                     this.$subscribeOnReconnect.push(subscription);
                 }
             }
-            const handler = new SubscriptionHandler(response.result);
-            this.subscriptionsMapping[response.id] = handler;
+            let handler;
+            handler = new SubscriptionHandler(response.result);
+            let _cachedSubscription = this.getSubscriptionByAlias(subscription.alias);
+            if (_cachedSubscription) {
+                this.subscriptionAliasToId[subscription.alias] = response.result;
+                _cachedSubscription.emit("updateSubscriptionId", response.result);
+            }
+            this.subscriptionIdToAlias[response.result] = subscription.alias;
+            this.subscriptionsMapping[response.result] = handler;
             resolve(handler);
         });
     }
@@ -77,13 +104,14 @@ class WSProvider extends web3_1.WebSocketProvider {
             console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
             for (const subscription of this.subscribeOnReconnect) {
                 console.log("auto subscribing to", subscription.eventName);
-                this.subscribe(subscription);
+                this.subscribe(subscription).then(subscription => { });
             }
             this.onMessageHandler();
         });
         this.on("close", () => {
             this.$available = false;
             for (let subscription in this.subscriptionsMapping) {
+                delete this.subscriptionIdToAlias[subscription];
                 delete this.subscriptionsMapping[subscription];
             }
         });
