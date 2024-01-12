@@ -106,6 +106,7 @@ export class RoundRobinWS {
                 console.log("id changed | ".repeat(150));
             });
             _subscription.on("data", (data) => {
+                console.log("[roundRoubWS] new data");
                 if (!this.subscriptionResults[data.transactionHash]) {
                     this.subscriptionResults[data.transactionHash] = data;
                     this.emit("data", data);
