@@ -1,5 +1,5 @@
 
-import { ProviderConnectInfo, WebSocketProvider } from "web3"
+import { ConnectionNotOpenError, ProviderConnectInfo, WebSocketProvider } from "web3"
 import { IWSProvider, IWSConfig, ResponseResult, RPC, ISubscriptionHandler, ISubscription } from "./types"
 import { WSProvider } from "./models/ws-provider"
 import { v4 } from "uuid";
@@ -144,6 +144,9 @@ export class RoundRobinWS {
             try {
                 return await request(retryCount);
             } catch (error) {
+                if (error instanceof ConnectionNotOpenError) {
+                    maxRetries++;
+                }
                 if (cancel && cancel(error)) {
                     if (throwErrorIfCancelled) {
                         throw error;
