@@ -1,4 +1,4 @@
-import { WebSocketProvider } from "web3";
+import { ConnectionNotOpenError, WebSocketProvider } from "web3";
 import { ISubscription, ISubscriptionHandler, ISubscriptionWithAlias, IWSConfig, IWSProvider } from "../types";
 
 class SubscriptionHandler implements ISubscriptionHandler {
@@ -66,32 +66,42 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     }
     public subscribe(subscription: ISubscriptionWithAlias,): Promise<ISubscriptionHandler>;
     public subscribe(subscription: ISubscriptionWithAlias, disableAutoSubscribeOnReconnect: true): Promise<ISubscriptionHandler>;
-    public subscribe(subscription: ISubscriptionWithAlias, disableAutoSubscribeOnReconnect?: true): Promise<ISubscriptionHandler> {
-        return new Promise(async (resolve, reject) => {
-            this.newRequest();
-            const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
-            if (response.error) {
-                reject(new Error(`Event: ${subscription.eventName}\n${response.error}`));
-                return;
+    public async subscribe(subscription: ISubscriptionWithAlias, disableAutoSubscribeOnReconnect?: true): Promise<ISubscriptionHandler> {
+        while (true) {
+            try {
+                return await new Promise(async (resolve, reject) => {
+                    this.newRequest();
+                    const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
+                    if (response.error) {
+                        reject(new Error(`Event: ${subscription.eventName}\n${response.error}`));
+                        return;
+                    }
+                    if (!disableAutoSubscribeOnReconnect) {
+                        const _subscriptionStr = JSON.stringify(subscription);
+                        if (!this.$subscribeOnReconnect.find(subscription => JSON.stringify(subscription) === _subscriptionStr)) {
+                            this.$subscribeOnReconnect.push(subscription);
+                        }
+                    }
+                    let handler: SubscriptionHandler;
+                    let _cachedSubscription = this.getSubscriptionByAlias(subscription.alias);
+                    if (_cachedSubscription) {
+                        _cachedSubscription.emit("updateSubscriptionId", response.result);
+                        handler = _cachedSubscription;
+                    } else {
+                        handler = new SubscriptionHandler(response.result);
+                    }
+                    this.subscriptionIdToAlias[response.result] = subscription.alias;
+                    this.subscriptionsMapping[subscription.alias] = handler;
+                    resolve(handler);
+                });
+            } catch (error) {
+                // if (!(error instanceof ConnectionNotOpenError)) {
+                //     break;
+                // }
+                await new Promise(r => setTimeout(r, 1000));
             }
-            if (!disableAutoSubscribeOnReconnect) {
-                const _subscriptionStr = JSON.stringify(subscription);
-                if (!this.$subscribeOnReconnect.find(subscription => JSON.stringify(subscription) === _subscriptionStr)) {
-                    this.$subscribeOnReconnect.push(subscription);
-                }
-            }
-            let handler: SubscriptionHandler;
-            let _cachedSubscription = this.getSubscriptionByAlias(subscription.alias);
-            if (_cachedSubscription) {
-                _cachedSubscription.emit("updateSubscriptionId", response.result);
-                handler = _cachedSubscription;
-            } else {
-                handler = new SubscriptionHandler(response.result);
-            }
-            this.subscriptionIdToAlias[response.result] = subscription.alias;
-            this.subscriptionsMapping[subscription.alias] = handler;
-            resolve(handler);
-        });
+
+        }
     }
     private init() {
         this.on("connect", async (data) => {

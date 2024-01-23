@@ -64,33 +64,43 @@ class WSProvider extends web3_1.WebSocketProvider {
     newRequest() {
         this.$requests += 1;
     }
-    subscribe(subscription, disableAutoSubscribeOnReconnect) {
-        return new Promise(async (resolve, reject) => {
-            this.newRequest();
-            const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
-            if (response.error) {
-                reject(new Error(`Event: ${subscription.eventName}\n${response.error}`));
-                return;
+    async subscribe(subscription, disableAutoSubscribeOnReconnect) {
+        while (true) {
+            try {
+                return await new Promise(async (resolve, reject) => {
+                    this.newRequest();
+                    const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
+                    if (response.error) {
+                        reject(new Error(`Event: ${subscription.eventName}\n${response.error}`));
+                        return;
+                    }
+                    if (!disableAutoSubscribeOnReconnect) {
+                        const _subscriptionStr = JSON.stringify(subscription);
+                        if (!this.$subscribeOnReconnect.find(subscription => JSON.stringify(subscription) === _subscriptionStr)) {
+                            this.$subscribeOnReconnect.push(subscription);
+                        }
+                    }
+                    let handler;
+                    let _cachedSubscription = this.getSubscriptionByAlias(subscription.alias);
+                    if (_cachedSubscription) {
+                        _cachedSubscription.emit("updateSubscriptionId", response.result);
+                        handler = _cachedSubscription;
+                    }
+                    else {
+                        handler = new SubscriptionHandler(response.result);
+                    }
+                    this.subscriptionIdToAlias[response.result] = subscription.alias;
+                    this.subscriptionsMapping[subscription.alias] = handler;
+                    resolve(handler);
+                });
             }
-            if (!disableAutoSubscribeOnReconnect) {
-                const _subscriptionStr = JSON.stringify(subscription);
-                if (!this.$subscribeOnReconnect.find(subscription => JSON.stringify(subscription) === _subscriptionStr)) {
-                    this.$subscribeOnReconnect.push(subscription);
-                }
+            catch (error) {
+                // if (!(error instanceof ConnectionNotOpenError)) {
+                //     break;
+                // }
+                await new Promise(r => setTimeout(r, 1000));
             }
-            let handler;
-            let _cachedSubscription = this.getSubscriptionByAlias(subscription.alias);
-            if (_cachedSubscription) {
-                _cachedSubscription.emit("updateSubscriptionId", response.result);
-                handler = _cachedSubscription;
-            }
-            else {
-                handler = new SubscriptionHandler(response.result);
-            }
-            this.subscriptionIdToAlias[response.result] = subscription.alias;
-            this.subscriptionsMapping[subscription.alias] = handler;
-            resolve(handler);
-        });
+        }
     }
     init() {
         this.on("connect", async (data) => {
