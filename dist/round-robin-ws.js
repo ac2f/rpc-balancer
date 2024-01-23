@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RoundRobinWS = void 0;
+const web3_1 = require("web3");
 const ws_provider_1 = require("./models/ws-provider");
 const uuid_1 = require("uuid");
 class RoundRobinWS {
@@ -144,6 +145,9 @@ class RoundRobinWS {
                 return await request(retryCount);
             }
             catch (error) {
+                if (error instanceof web3_1.ConnectionNotOpenError) {
+                    maxRetries++;
+                }
                 if (cancel && cancel(error)) {
                     if (throwErrorIfCancelled) {
                         throw error;
