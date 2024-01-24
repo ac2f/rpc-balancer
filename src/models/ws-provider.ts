@@ -67,7 +67,8 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     public subscribe(subscription: ISubscriptionWithAlias,): Promise<ISubscriptionHandler>;
     public subscribe(subscription: ISubscriptionWithAlias, disableAutoSubscribeOnReconnect: true): Promise<ISubscriptionHandler>;
     public async subscribe(subscription: ISubscriptionWithAlias, disableAutoSubscribeOnReconnect?: true): Promise<ISubscriptionHandler> {
-        while (true) {
+        const maxRetries = 10;
+        for (let index = 0; index < maxRetries; index++) {
             try {
                 return await new Promise(async (resolve, reject) => {
                     this.newRequest();
@@ -95,20 +96,31 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
                     resolve(handler);
                 });
             } catch (error) {
+                console.log(error);
                 // if (!(error instanceof ConnectionNotOpenError)) {
                 //     break;
                 // }
-                await new Promise(r => setTimeout(r, 1000));
+                if (index >= (maxRetries - 1)) {
+                    try {
+                        this.disconnect();
+                    } catch (error) {}
+                    this.connect();
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 2000));
             }
-
         }
+        throw new Error("coudln't subscribe");
+        // while (true) {
+            
+        // }
     }
     private init() {
         this.on("connect", async (data) => {
             this.$available = true;
             console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
             for (const subscription of this.subscribeOnReconnect) {
-                this.subscribe(subscription);
+                this.subscribe(subscription).catch(err => console.log("err subscribing:", err));
             }
             this.onMessageHandler();
         });
