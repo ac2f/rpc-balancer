@@ -67,13 +67,15 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     public subscribe(subscription: ISubscriptionWithAlias,): Promise<ISubscriptionHandler>;
     public subscribe(subscription: ISubscriptionWithAlias, disableAutoSubscribeOnReconnect: true): Promise<ISubscriptionHandler>;
     public async subscribe(subscription: ISubscriptionWithAlias, disableAutoSubscribeOnReconnect?: true): Promise<ISubscriptionHandler> {
-        const maxRetries = 10;
+        const maxRetries = 20;
         for (let index = 0; index < maxRetries; index++) {
             try {
                 return await new Promise(async (resolve, reject) => {
                     this.newRequest();
                     const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
+                    this.clientOptions?.debug && console.log(response)
                     if (response.error) {
+                        this.clientOptions?.debug && console.log("error:", response.error);
                         reject(new Error(`Event: ${subscription.eventName}\n${response.error}`));
                         return;
                     }
@@ -93,17 +95,22 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
                     }
                     this.subscriptionIdToAlias[response.result] = subscription.alias;
                     this.subscriptionsMapping[subscription.alias] = handler;
+                    this.clientOptions?.debug && console.log("subscribed:", handler, response);
                     resolve(handler);
                 });
             } catch (error) {
-                console.log(error);
+                if (this.clientOptions?.debug) {
+                    console.log(error);
+                }
                 // if (!(error instanceof ConnectionNotOpenError)) {
                 //     break;
                 // }
                 if (index >= (maxRetries - 1)) {
                     try {
+                        this.clientOptions?.debug && console.log("disconnecting")
                         this.disconnect();
-                    } catch (error) {}
+                    } catch (error) { }
+                    this.clientOptions?.debug && console.log("reconnecting")
                     this.connect();
                     break;
                 }
@@ -112,13 +119,14 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
         }
         throw new Error("coudln't subscribe");
         // while (true) {
-            
+
         // }
     }
     private init() {
         this.on("connect", async (data) => {
             this.$available = true;
-            console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
+            this.clientOptions.debug && console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
+            await new Promise(r => setTimeout(r, 2000));
             for (const subscription of this.subscribeOnReconnect) {
                 this.subscribe(subscription).catch(err => console.log("err subscribing:", err));
             }
@@ -140,9 +148,10 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
             }
         })
     }
-
+    clientOptions: any;
     constructor(address: string, clientOptions?: IWSConfig["client"], reconnect?: IWSConfig["reconnect"], disableClientOnError?: IWSConfig["disableClientOnError"]) {
         super(address, clientOptions, reconnect);
+        this.clientOptions = clientOptions;
         this.address = address;
         this._disableClientOnError = disableClientOnError;
         this.init();

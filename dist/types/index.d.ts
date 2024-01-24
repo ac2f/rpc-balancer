@@ -18,12 +18,14 @@ export interface IHTTPConfig {
     maxConnections: number;
     maxRetries: number;
     cache?: CacheOptions;
+    debug?: true;
 }
 export interface IWSConfig extends IHTTPConfig {
     cache: undefined;
     reconnect: ReconnectOptions;
     connectionTimeout: number;
     client: ClientOptions | ClientRequestArgs;
+    debug?: true;
     disableClientOnError: (error: any) => boolean;
 }
 export interface ResponseResult {
