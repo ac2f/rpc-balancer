@@ -125,7 +125,7 @@ export class RoundRobinWS {
                 if (!new RegExp(`^(ws|wss):\/\/`).test(address)) {
                     throw new Error("Address must be a websocket endpoint");
                 }
-                const provider = new WSProvider(address, this.options.client, this.options.reconnect, this.options.disableClientOnError);
+                const provider = new WSProvider(address, this.options.client, this.options.reconnect, this.options.disableClientOnError, this.options.debug);
                 const rejectTimeout = setTimeout(() => {
                     reject(new Error(`connection to "${address}" timed out`));
                 }, this.options.connectionTimeout);
