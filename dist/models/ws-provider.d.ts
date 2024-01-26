@@ -29,7 +29,7 @@ export declare class WSProvider extends WebSocketProvider implements IWSProvider
     subscribe(subscription: ISubscriptionWithAlias): Promise<ISubscriptionHandler>;
     subscribe(subscription: ISubscriptionWithAlias, disableAutoSubscribeOnReconnect: true): Promise<ISubscriptionHandler>;
     private init;
-    clientOptions: any;
-    constructor(address: string, clientOptions?: IWSConfig["client"], reconnect?: IWSConfig["reconnect"], disableClientOnError?: IWSConfig["disableClientOnError"]);
+    debug: boolean;
+    constructor(address: string, clientOptions?: IWSConfig["client"], reconnect?: IWSConfig["reconnect"], disableClientOnError?: IWSConfig["disableClientOnError"], debug?: boolean);
 }
 export {};

@@ -71,9 +71,9 @@ class WSProvider extends web3_1.WebSocketProvider {
                 return await new Promise(async (resolve, reject) => {
                     this.newRequest();
                     const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
-                    this.clientOptions?.debug && console.log(response);
+                    this.debug && console.log(response);
                     if (response.error) {
-                        this.clientOptions?.debug && console.log("error:", response.error);
+                        this.debug && console.log("error:", response.error);
                         reject(new Error(`Event: ${subscription.eventName}\n${response.error}`));
                         return;
                     }
@@ -94,12 +94,12 @@ class WSProvider extends web3_1.WebSocketProvider {
                     }
                     this.subscriptionIdToAlias[response.result] = subscription.alias;
                     this.subscriptionsMapping[subscription.alias] = handler;
-                    this.clientOptions?.debug && console.log("subscribed:", handler, response);
+                    this.debug && console.log("subscribed:", handler, response);
                     resolve(handler);
                 });
             }
             catch (error) {
-                if (this.clientOptions?.debug) {
+                if (this.debug) {
                     console.log(error);
                 }
                 // if (!(error instanceof ConnectionNotOpenError)) {
@@ -107,11 +107,11 @@ class WSProvider extends web3_1.WebSocketProvider {
                 // }
                 if (index >= (maxRetries - 1)) {
                     try {
-                        this.clientOptions?.debug && console.log("disconnecting");
+                        this?.debug && console.log("disconnecting");
                         this.disconnect();
                     }
                     catch (error) { }
-                    this.clientOptions?.debug && console.log("reconnecting");
+                    this.debug && console.log("reconnecting");
                     this.connect();
                     break;
                 }
@@ -125,7 +125,7 @@ class WSProvider extends web3_1.WebSocketProvider {
     init() {
         this.on("connect", async (data) => {
             this.$available = true;
-            this.clientOptions.debug && console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
+            this.debug && console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
             await new Promise(r => setTimeout(r, 2000));
             for (const subscription of this.subscribeOnReconnect) {
                 this.subscribe(subscription).catch(err => console.log("err subscribing:", err));
@@ -149,10 +149,10 @@ class WSProvider extends web3_1.WebSocketProvider {
             }
         });
     }
-    clientOptions;
-    constructor(address, clientOptions, reconnect, disableClientOnError) {
+    debug = false;
+    constructor(address, clientOptions, reconnect, disableClientOnError, debug) {
         super(address, clientOptions, reconnect);
-        this.clientOptions = clientOptions;
+        this.debug = !!debug;
         this.address = address;
         this._disableClientOnError = disableClientOnError;
         this.init();

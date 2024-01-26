@@ -25,7 +25,6 @@ export interface IWSConfig extends IHTTPConfig {
     reconnect: ReconnectOptions;
     connectionTimeout: number;
     client: ClientOptions | ClientRequestArgs;
-    debug?: true;
     disableClientOnError: (error: any) => boolean;
 }
 export interface ResponseResult {
