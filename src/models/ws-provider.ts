@@ -92,33 +92,6 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
         // this.debug && console.log("subscribed:", handler, response);
         this.debug && console.log("subscribed to", subscription);
         return handler;
-        // for (let index = 0; index < maxRetries; index++) {
-        //     try {
-        //         return await new Promise(async (resolve, reject) => {
-        //         });
-        //     } catch (error) {
-        //         if (this.debug) {
-        //             console.log(error);
-        //         }
-        //         // if (!(error instanceof ConnectionNotOpenError)) {
-        //         //     break;
-        //         // }
-        //         if (index >= (maxRetries - 1)) {
-        //             try {
-        //                 this?.debug && console.log("disconnecting")
-        //                 this.disconnect();
-        //             } catch (error) { }
-        //             this.debug && console.log("reconnecting")
-        //             this.connect();
-        //             break;
-        //         }
-        //         await new Promise(r => setTimeout(r, 2000));
-        //     }
-        // }
-        // throw new Error("coudln't subscribe");
-        // // while (true) {
-
-        // // }
     }
     private init() {
         this.on("connect", async (data) => {

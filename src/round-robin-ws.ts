@@ -214,26 +214,3 @@ export class RoundRobinWS {
         return res?.result;
     }
 }
-(async () => {
-    console.log("initializing")
-    const client = new RoundRobinWS({
-        debug: true,
-        reconnect: {
-            autoReconnect: true,
-            delay: 1000,
-            maxAttempts: 1e20
-        }
-    });
-    await client.init(["wss://eth-mainnet.nodereal.io/ws/v1/71bc9202aa514631bf984e94d9a3ae9f"]);
-    await client.subscribe({
-        eventName: "logs",
-        meta: {
-            topics: [
-                "0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1"
-            ]
-        }
-    })
-    client.on("data", (data) => {
-        console.log(`[${new Date().toLocaleTimeString()}] Data received:`, parseInt(data.blockNumber, 16));
-    });
-})();
