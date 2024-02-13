@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RoundRobinWS = void 0;
-const web3_1 = require("web3");
 const ws_provider_1 = require("./models/ws-provider");
+const utils_1 = require("./utils");
 const uuid_1 = require("uuid");
 class RoundRobinWS {
     queue = [];
@@ -27,10 +27,6 @@ class RoundRobinWS {
     constructor(options) {
         this.options = { ...this.options, ...options };
         if (options.cache) {
-            // this._excludedMethods = options.cache.excludeMethods.reduce((previous, current) => {
-            //     previous[current.toLowerCase()] = 1;
-            //     return previous;
-            // }, {} as RoundRobinWS["_excludedMethods"]);
         }
         ;
         this._validateLock();
@@ -109,12 +105,6 @@ class RoundRobinWS {
                 }
             });
         }
-        return {
-            id: _subscriptionWithAlias.alias,
-            on: (event, handler) => {
-                // implementation cancelled
-            }
-        };
     }
     async init(rpcList) {
         let results = [];
@@ -139,26 +129,8 @@ class RoundRobinWS {
         }
         return results;
     }
-    async requestUntil(request, maxRetries, cancel, throwErrorIfCancelled = true) {
-        for (let retryCount = 0; retryCount < maxRetries; retryCount) {
-            try {
-                return await request(retryCount);
-            }
-            catch (error) {
-                if (error instanceof web3_1.ConnectionNotOpenError) {
-                    maxRetries++;
-                }
-                if (cancel && cancel(error)) {
-                    if (throwErrorIfCancelled) {
-                        throw error;
-                    }
-                    break;
-                }
-            }
-        }
-    }
     async sendAsync(request, callback) {
-        const res = await this.requestUntil(async () => {
+        const res = await utils_1.Task.default.retryTaskUntilDone(async () => {
             let provider = this.provider;
             if (!provider && this.providers.length > 1) {
                 for (let index = 0; index < 3; index++) {
@@ -176,11 +148,11 @@ class RoundRobinWS {
                 method: request.method,
                 params: request.params
             });
-        }, this.options.maxRetries);
+        }, 1000 * 10, 100, this.options.maxRetries);
         return res?.result;
     }
     async send(request, callback) {
-        const res = await this.requestUntil(async () => {
+        const res = await utils_1.Task.default.retryTaskUntilDone(async () => {
             let provider = this.provider;
             if (!provider && this.providers.length > 1) {
                 for (let index = 0; index < 3; index++) {
@@ -199,11 +171,11 @@ class RoundRobinWS {
                 params: request.params
             });
             return response;
-        }, this.options.maxRetries);
+        }, 1000 * 10, 100, this.options.maxRetries);
         return res?.result;
     }
     async request(request) {
-        const res = await this.requestUntil(async () => {
+        const res = await utils_1.Task.default.retryTaskUntilDone(async () => {
             let provider = this.provider;
             if (!provider && this.providers.length > 1) {
                 for (let index = 0; index < 3; index++) {
@@ -224,8 +196,31 @@ class RoundRobinWS {
                 params: request.params
             });
             return response;
-        }, this.options.maxRetries);
+        }, 1000 * 10, 100, this.options.maxRetries);
         return res?.result;
     }
 }
 exports.RoundRobinWS = RoundRobinWS;
+(async () => {
+    console.log("initializing");
+    const client = new RoundRobinWS({
+        debug: true,
+        reconnect: {
+            autoReconnect: true,
+            delay: 1000,
+            maxAttempts: 1e20
+        }
+    });
+    await client.init(["wss://eth-mainnet.nodereal.io/ws/v1/71bc9202aa514631bf984e94d9a3ae9f"]);
+    await client.subscribe({
+        eventName: "logs",
+        meta: {
+            topics: [
+                "0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1"
+            ]
+        }
+    });
+    client.on("data", (data) => {
+        console.log(`[${new Date().toLocaleTimeString()}] Data received:`, parseInt(data.blockNumber, 16));
+    });
+})();

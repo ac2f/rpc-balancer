@@ -1,7 +1,8 @@
 
-import { ConnectionNotOpenError, ProviderConnectInfo, WebSocketProvider } from "web3"
-import { IWSProvider, IWSConfig, ResponseResult, RPC, ISubscriptionHandler, ISubscription } from "./types"
+import { ConnectionNotOpenError, ProviderConnectInfo } from "web3"
+import { IWSProvider, IWSConfig, RPC, ISubscriptionHandler, ISubscription } from "./types"
 import { WSProvider } from "./models/ws-provider"
+import { Task } from "./utils";
 import { v4 } from "uuid";
 export class RoundRobinWS {
     public queue: RPC[] = []
@@ -27,10 +28,6 @@ export class RoundRobinWS {
     constructor(options: Partial<IWSConfig>) {
         this.options = { ...this.options, ...options };
         if (options.cache) {
-            // this._excludedMethods = options.cache.excludeMethods.reduce((previous, current) => {
-            //     previous[current.toLowerCase()] = 1;
-            //     return previous;
-            // }, {} as RoundRobinWS["_excludedMethods"]);
         };
         this._validateLock();
         this._autoSortProviders();
@@ -96,7 +93,7 @@ export class RoundRobinWS {
             listener(...args);
         }
     }
-    async subscribe(subscription: ISubscription): Promise<ISubscriptionHandler> {
+    async subscribe(subscription: ISubscription) {
         let subscriptionIds: string[] = [];
         let _subscriptionWithAlias: ISubscription & { alias: string } = { alias: v4(), ...subscription };
         for (let provider of this.providers) {
@@ -109,12 +106,6 @@ export class RoundRobinWS {
                 }
             });
         }
-        return {
-            id: _subscriptionWithAlias.alias,
-            on: (event, handler) => {
-                // implementation cancelled
-            }
-        };
     }
     async init(rpcList: string[]): Promise<ProviderConnectInfo[]> {
         let results: ProviderConnectInfo[] = []
@@ -139,25 +130,8 @@ export class RoundRobinWS {
         }
         return results;
     }
-    private async requestUntil<K>(request: (retryCount: number) => Promise<K> | K, maxRetries: number, cancel?: (error: any) => boolean, throwErrorIfCancelled: boolean = true): Promise<K | undefined> {
-        for (let retryCount = 0; retryCount < maxRetries; retryCount) {
-            try {
-                return await request(retryCount);
-            } catch (error) {
-                if (error instanceof ConnectionNotOpenError) {
-                    maxRetries++;
-                }
-                if (cancel && cancel(error)) {
-                    if (throwErrorIfCancelled) {
-                        throw error;
-                    }
-                    break;
-                }
-            }
-        }
-    }
     public async sendAsync(request: { method: string, params?: Array<any> }, callback: (error: any, response: any) => void): Promise<any> {
-        const res = await this.requestUntil(async () => {
+        const res = await Task.default.retryTaskUntilDone(async () => {
             let provider = this.provider;
             if (!provider && this.providers.length > 1) {
                 for (let index = 0; index < 3; index++) {
@@ -175,12 +149,16 @@ export class RoundRobinWS {
                 method: request.method,
                 params: request.params
             })
-        }, this.options.maxRetries as number);
+        },
+            1000 * 10,
+            100,
+            this.options.maxRetries
+        );
         return res?.result;
     }
 
     public async send(request: { method: string, params?: Array<any> }, callback: (error: any, response: any) => void): Promise<any> {
-        const res = await this.requestUntil(async () => {
+        const res = await Task.default.retryTaskUntilDone(async () => {
             let provider = this.provider;
             if (!provider && this.providers.length > 1) {
                 for (let index = 0; index < 3; index++) {
@@ -199,13 +177,16 @@ export class RoundRobinWS {
                 params: request.params
             })
             return response;
-        }, this.options.maxRetries as number);
+        }, 1000 * 10,
+            100,
+            this.options.maxRetries
+        );
 
         return res?.result;
     }
 
     public async request(request: { method: string, params?: Array<any> }): Promise<any> {
-        const res = await this.requestUntil(async () => {
+        const res = await Task.default.retryTaskUntilDone(async () => {
             let provider = this.provider;
             if (!provider && this.providers.length > 1) {
                 for (let index = 0; index < 3; index++) {
@@ -225,7 +206,34 @@ export class RoundRobinWS {
                 params: request.params
             })
             return response;
-        }, this.options.maxRetries as number);
+        },
+            1000 * 10,
+            100,
+            this.options.maxRetries
+        );
         return res?.result;
     }
 }
+(async () => {
+    console.log("initializing")
+    const client = new RoundRobinWS({
+        debug: true,
+        reconnect: {
+            autoReconnect: true,
+            delay: 1000,
+            maxAttempts: 1e20
+        }
+    });
+    await client.init(["wss://eth-mainnet.nodereal.io/ws/v1/71bc9202aa514631bf984e94d9a3ae9f"]);
+    await client.subscribe({
+        eventName: "logs",
+        meta: {
+            topics: [
+                "0x1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1"
+            ]
+        }
+    })
+    client.on("data", (data) => {
+        console.log(`[${new Date().toLocaleTimeString()}] Data received:`, parseInt(data.blockNumber, 16));
+    });
+})();

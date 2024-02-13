@@ -1,4 +1,4 @@
-import { ConnectionNotOpenError, WebSocketProvider } from "web3";
+import { ConnectionNotOpenError, ConnectionTimeoutError, WebSocketProvider } from "web3";
 import { ISubscription, ISubscriptionHandler, ISubscriptionWithAlias, IWSConfig, IWSProvider } from "../types";
 
 class SubscriptionHandler implements ISubscriptionHandler {
@@ -67,68 +67,82 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
     public subscribe(subscription: ISubscriptionWithAlias,): Promise<ISubscriptionHandler>;
     public subscribe(subscription: ISubscriptionWithAlias, disableAutoSubscribeOnReconnect: true): Promise<ISubscriptionHandler>;
     public async subscribe(subscription: ISubscriptionWithAlias, disableAutoSubscribeOnReconnect?: true): Promise<ISubscriptionHandler> {
-        const maxRetries = 20;
-        for (let index = 0; index < maxRetries; index++) {
-            try {
-                return await new Promise(async (resolve, reject) => {
-                    this.newRequest();
-                    const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
-                    this.debug && console.log(response)
-                    if (response.error) {
-                        this.debug && console.log("error:", response.error);
-                        reject(new Error(`Event: ${subscription.eventName}\n${response.error}`));
-                        return;
-                    }
-                    if (!disableAutoSubscribeOnReconnect) {
-                        const _subscriptionStr = JSON.stringify(subscription);
-                        if (!this.$subscribeOnReconnect.find(subscription => JSON.stringify(subscription) === _subscriptionStr)) {
-                            this.$subscribeOnReconnect.push(subscription);
-                        }
-                    }
-                    let handler: SubscriptionHandler;
-                    let _cachedSubscription = this.getSubscriptionByAlias(subscription.alias);
-                    if (_cachedSubscription) {
-                        _cachedSubscription.emit("updateSubscriptionId", response.result);
-                        handler = _cachedSubscription;
-                    } else {
-                        handler = new SubscriptionHandler(response.result);
-                    }
-                    this.subscriptionIdToAlias[response.result] = subscription.alias;
-                    this.subscriptionsMapping[subscription.alias] = handler;
-                    this.debug && console.log("subscribed:", handler, response);
-                    resolve(handler);
-                });
-            } catch (error) {
-                if (this.debug) {
-                    console.log(error);
-                }
-                // if (!(error instanceof ConnectionNotOpenError)) {
-                //     break;
-                // }
-                if (index >= (maxRetries - 1)) {
-                    try {
-                        this?.debug && console.log("disconnecting")
-                        this.disconnect();
-                    } catch (error) { }
-                    this.debug && console.log("reconnecting")
-                    this.connect();
-                    break;
-                }
-                await new Promise(r => setTimeout(r, 2000));
+        this.newRequest();
+        const response = await this.request({ id: this.requests + 1, method: "eth_subscribe", params: [subscription.eventName, subscription.meta ? { fromBlock: subscription.meta.fromBlock, address: subscription.meta.address, topics: subscription.meta.topics } : undefined] });
+        if (response.error) {
+            this.debug && console.log("error:", response.error);
+            throw new Error(`Event: ${subscription.eventName}\n${response.error}`);
+        }
+        if (!disableAutoSubscribeOnReconnect) {
+            const _subscriptionStr = JSON.stringify(subscription);
+            if (!this.$subscribeOnReconnect.find(subscription => JSON.stringify(subscription) === _subscriptionStr)) {
+                this.$subscribeOnReconnect.push(subscription);
             }
         }
-        throw new Error("coudln't subscribe");
-        // while (true) {
-
+        let handler: SubscriptionHandler;
+        let _cachedSubscription = this.getSubscriptionByAlias(subscription.alias);
+        if (_cachedSubscription) {
+            _cachedSubscription.emit("updateSubscriptionId", response.result);
+            handler = _cachedSubscription;
+        } else {
+            handler = new SubscriptionHandler(response.result);
+        }
+        this.subscriptionIdToAlias[response.result] = subscription.alias;
+        this.subscriptionsMapping[subscription.alias] = handler;
+        // this.debug && console.log("subscribed:", handler, response);
+        this.debug && console.log("subscribed to", subscription);
+        return handler;
+        // for (let index = 0; index < maxRetries; index++) {
+        //     try {
+        //         return await new Promise(async (resolve, reject) => {
+        //         });
+        //     } catch (error) {
+        //         if (this.debug) {
+        //             console.log(error);
+        //         }
+        //         // if (!(error instanceof ConnectionNotOpenError)) {
+        //         //     break;
+        //         // }
+        //         if (index >= (maxRetries - 1)) {
+        //             try {
+        //                 this?.debug && console.log("disconnecting")
+        //                 this.disconnect();
+        //             } catch (error) { }
+        //             this.debug && console.log("reconnecting")
+        //             this.connect();
+        //             break;
+        //         }
+        //         await new Promise(r => setTimeout(r, 2000));
+        //     }
         // }
+        // throw new Error("coudln't subscribe");
+        // // while (true) {
+
+        // // }
     }
     private init() {
         this.on("connect", async (data) => {
             this.$available = true;
             this.debug && console.log("onConnect", data.chainId, this.address, "there is", this.subscribeOnReconnect.length, "subscription orders pending");
-            await new Promise(r => setTimeout(r, 2000));
             for (const subscription of this.subscribeOnReconnect) {
-                this.subscribe(subscription).catch(err => console.log("err subscribing:", err));
+                while (true) {
+                    try {
+                        await this.subscribe(subscription);
+                        this.debug && console.log("auto subscribe, subscription alias:", subscription.alias);
+                        break;
+                    } catch (error) {
+                        if (error instanceof ConnectionTimeoutError ) {
+                            this.debug && console.log("conenction not open, reconnecting..");
+                            try {
+                                this._reconnect();
+                                this.debug && console.log("reconnected")
+                            } catch (error) {
+                                this.debug && console.log("error while reconnecting.. error:" , error);
+                            }
+                        }
+                        await new Promise(r => setTimeout(r, 500));
+                    }
+                }
             }
             this.onMessageHandler();
         });
