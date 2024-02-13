@@ -26,7 +26,6 @@ const retryTaskUntilDone = (task, timeout = 60000, delayRetrying = 1000, repeat 
         let c = 0;
         while (repeat < 0 || c < repeat) {
             try {
-                console.log("retrying..");
                 resolve(await (0, exports.waitTask)(task, timeout));
                 return;
             }

@@ -23,7 +23,6 @@ export const retryTaskUntilDone = <K>(task: () => (Promise<K> | K), timeout: num
         let c: number = 0;
         while (repeat < 0 || c < repeat) {
             try {
-                console.log("retrying..")
                 resolve(await waitTask(task, timeout));
                 return;
             } catch (error) {
