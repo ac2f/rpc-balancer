@@ -22,6 +22,11 @@ class RoundRobinWS {
             autoReconnect: true,
             delay: 2000,
             maxAttempts: 1e20
+        },
+        tasks: {
+            timeout: 1000 * 10,
+            maxRetries: 5,
+            waitBetweenAttempts: 100
         }
     };
     constructor(options) {
@@ -148,7 +153,7 @@ class RoundRobinWS {
                 method: request.method,
                 params: request.params
             });
-        }, 1000 * 10, 100, this.options.maxRetries);
+        }, this.options.tasks?.timeout, this.options.tasks?.waitBetweenAttempts, this.options.tasks?.maxRetries);
         return res?.result;
     }
     async send(request, callback) {
@@ -171,7 +176,7 @@ class RoundRobinWS {
                 params: request.params
             });
             return response;
-        }, 1000 * 10, 100, this.options.maxRetries);
+        }, this.options.tasks?.timeout, this.options.tasks?.waitBetweenAttempts, this.options.tasks?.maxRetries);
         return res?.result;
     }
     async request(request) {
@@ -196,7 +201,7 @@ class RoundRobinWS {
                 params: request.params
             });
             return response;
-        }, 1000 * 10, 100, this.options.maxRetries);
+        }, this.options.tasks?.timeout, this.options.tasks?.waitBetweenAttempts, this.options.tasks?.maxRetries);
         return res?.result;
     }
 }

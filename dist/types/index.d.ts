@@ -20,12 +20,18 @@ export interface IHTTPConfig {
     cache?: CacheOptions;
     debug?: true;
 }
+export type TasksOptions = {
+    timeout: number;
+    maxRetries: number;
+    waitBetweenAttempts: number;
+};
 export interface IWSConfig extends IHTTPConfig {
     cache: undefined;
     reconnect: ReconnectOptions;
     connectionTimeout: number;
     client: ClientOptions | ClientRequestArgs;
     disableClientOnError: (error: any) => boolean;
+    tasks: TasksOptions;
 }
 export interface ResponseResult {
     method: string;
