@@ -13,7 +13,6 @@ export class RoundRobinWS {
     private _lock: boolean = false;
     private _lockedAt: number = 0;
     private eventListeners: { [key: string]: ((...args: any[]) => void)[] } = {};
-    // private _excludedMethods: { [methodName: string]: 1 } = {}; // check if the method is excluded by indexing is methodName instead of scanning whole array
     public options: Partial<IWSConfig> = {
         maxRetries: 5,
         client: {},
@@ -50,7 +49,7 @@ export class RoundRobinWS {
         }
     }
     private async _validateLock() {
-        let _lastState = false; // to update latest timestamp of locked state
+        let _lastState = false;
         while (true) {
             await new Promise(r => setTimeout(r, 1000));
             if (this._lock && _lastState !== this._lock) {
@@ -136,87 +135,66 @@ export class RoundRobinWS {
         return results;
     }
     public async sendAsync(request: { method: string, params?: Array<any> }, callback: (error: any, response: any) => void): Promise<any> {
-        const res = await Task.default.retryTaskUntilDone(async () => {
-            let provider = this.provider;
-            if (!provider && this.providers.length > 1) {
-                for (let index = 0; index < 3; index++) {
-                    await new Promise(r => setTimeout(r, 1000));
-                    provider = this.provider;
-                }
+        let provider = this.provider;
+        if (!provider && this.providers.length > 1) {
+            for (let index = 0; index < 3; index++) {
+                await new Promise(r => setTimeout(r, 1000));
+                provider = this.provider;
             }
-            if (!provider) {
-                throw new Error("no provider available");
-            }
-            provider.newRequest();
-            return await provider.request({
-                id: provider.requests + 1,
-                jsonrpc: "2.0",
-                method: request.method,
-                params: request.params
-            })
-        },
-            this.options.tasks?.timeout,
-            this.options.tasks?.waitBetweenAttempts,
-            this.options.tasks?.maxRetries
-        );
-        return res?.result;
+        }
+        if (!provider) {
+            throw new Error("no provider available");
+        }
+        provider.newRequest();
+        return await provider.request({
+            id: provider.requests + 1,
+            jsonrpc: "2.0",
+            method: request.method,
+            params: request.params
+        })
     }
 
     public async send(request: { method: string, params?: Array<any> }, callback: (error: any, response: any) => void): Promise<any> {
-        const res = await Task.default.retryTaskUntilDone(async () => {
-            let provider = this.provider;
-            if (!provider && this.providers.length > 1) {
-                for (let index = 0; index < 3; index++) {
-                    await new Promise(r => setTimeout(r, 1000));
-                    provider = this.provider;
-                }
+        let provider = this.provider;
+        if (!provider && this.providers.length > 1) {
+            for (let index = 0; index < 3; index++) {
+                await new Promise(r => setTimeout(r, 1000));
+                provider = this.provider;
             }
-            if (!provider) {
-                throw new Error("no provider available");
-            }
-            provider.newRequest();
-            const response = await provider.request({
-                id: provider.requests + 1,
-                jsonrpc: "2.0",
-                method: request.method,
-                params: request.params
-            })
-            return response;
-        },
-            this.options.tasks?.timeout,
-            this.options.tasks?.waitBetweenAttempts,
-            this.options.tasks?.maxRetries
-        );
+        }
+        if (!provider) {
+            throw new Error("no provider available");
+        }
+        provider.newRequest();
+        const response = await provider.request({
+            id: provider.requests + 1,
+            jsonrpc: "2.0",
+            method: request.method,
+            params: request.params
+        })
+        return response;
 
-        return res?.result;
     }
 
     public async request(request: { method: string, params?: Array<any> }): Promise<any> {
-        const res = await Task.default.retryTaskUntilDone(async () => {
-            let provider = this.provider;
-            if (!provider && this.providers.length > 1) {
-                for (let index = 0; index < 3; index++) {
-                    await new Promise(r => setTimeout(r, 1000));
-                    provider = this.provider;
-                    if (provider) break;
-                }
+        let provider = this.provider;
+        if (!provider && this.providers.length > 1) {
+            for (let index = 0; index < 3; index++) {
+                await new Promise(r => setTimeout(r, 1000));
+                provider = this.provider;
+                if (provider) break;
             }
-            if (!provider) {
-                throw new Error("no provider available");
-            }
-            provider.newRequest();
-            const response = await provider.request({
-                id: provider.requests + 1,
-                jsonrpc: "2.0",
-                method: request.method,
-                params: request.params
-            })
-            return response;
-        },
-            this.options.tasks?.timeout,
-            this.options.tasks?.waitBetweenAttempts,
-            this.options.tasks?.maxRetries
-        );
-        return res?.result;
+        }
+        if (!provider) {
+            throw new Error("no provider available");
+        }
+        provider.newRequest();
+        const response = await provider.request({
+            id: provider.requests + 1,
+            jsonrpc: "2.0",
+            method: request.method,
+            params: request.params
+        })
+        return response;
     }
 }

@@ -24,7 +24,7 @@ exports.waitTask = waitTask;
 const retryTaskUntilDone = (task, timeout = 60000, delayRetrying = 1000, repeat = 2, continueOnError) => {
     return new Promise(async (resolve, reject) => {
         let c = 0;
-        while (repeat < 0 || c < repeat) {
+        while (repeat <= 0 || c < repeat) {
             try {
                 resolve(await (0, exports.waitTask)(task, timeout));
                 return;
@@ -34,8 +34,8 @@ const retryTaskUntilDone = (task, timeout = 60000, delayRetrying = 1000, repeat 
                     return;
                 }
             }
-            await new Promise(r => setTimeout(r, delayRetrying));
             c++;
+            await new Promise(r => setTimeout(r, delayRetrying));
         }
     });
 };

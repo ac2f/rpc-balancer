@@ -21,7 +21,7 @@ export const waitTask = <K>(task: () => K, timeout: number = 60000): Promise<K> 
 export const retryTaskUntilDone = <K>(task: () => (Promise<K> | K), timeout: number = 60000, delayRetrying: number = 1000, repeat: number = 2, continueOnError?: (error: Error) => boolean | void | undefined | null): Promise<K> => {
     return new Promise(async (resolve, reject) => {
         let c: number = 0;
-        while (repeat < 0 || c < repeat) {
+        while (repeat <= 0 || c < repeat) {
             try {
                 resolve(await waitTask(task, timeout));
                 return;
@@ -30,8 +30,8 @@ export const retryTaskUntilDone = <K>(task: () => (Promise<K> | K), timeout: num
                     return;
                 }
             }
-            await new Promise(r => setTimeout(r, delayRetrying));
             c++;
+            await new Promise(r => setTimeout(r, delayRetrying));
         }
     });
 }

@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RoundRobinWS = void 0;
 const ws_provider_1 = require("./models/ws-provider");
-const utils_1 = require("./utils");
 const uuid_1 = require("uuid");
 class RoundRobinWS {
     queue = [];
@@ -13,7 +12,6 @@ class RoundRobinWS {
     _lock = false;
     _lockedAt = 0;
     eventListeners = {};
-    // private _excludedMethods: { [methodName: string]: 1 } = {}; // check if the method is excluded by indexing is methodName instead of scanning whole array
     options = {
         maxRetries: 5,
         client: {},
@@ -50,7 +48,7 @@ class RoundRobinWS {
         }
     }
     async _validateLock() {
-        let _lastState = false; // to update latest timestamp of locked state
+        let _lastState = false;
         while (true) {
             await new Promise(r => setTimeout(r, 1000));
             if (this._lock && _lastState !== this._lock) {
@@ -135,74 +133,65 @@ class RoundRobinWS {
         return results;
     }
     async sendAsync(request, callback) {
-        const res = await utils_1.Task.default.retryTaskUntilDone(async () => {
-            let provider = this.provider;
-            if (!provider && this.providers.length > 1) {
-                for (let index = 0; index < 3; index++) {
-                    await new Promise(r => setTimeout(r, 1000));
-                    provider = this.provider;
-                }
+        let provider = this.provider;
+        if (!provider && this.providers.length > 1) {
+            for (let index = 0; index < 3; index++) {
+                await new Promise(r => setTimeout(r, 1000));
+                provider = this.provider;
             }
-            if (!provider) {
-                throw new Error("no provider available");
-            }
-            provider.newRequest();
-            return await provider.request({
-                id: provider.requests + 1,
-                jsonrpc: "2.0",
-                method: request.method,
-                params: request.params
-            });
-        }, this.options.tasks?.timeout, this.options.tasks?.waitBetweenAttempts, this.options.tasks?.maxRetries);
-        return res?.result;
+        }
+        if (!provider) {
+            throw new Error("no provider available");
+        }
+        provider.newRequest();
+        return await provider.request({
+            id: provider.requests + 1,
+            jsonrpc: "2.0",
+            method: request.method,
+            params: request.params
+        });
     }
     async send(request, callback) {
-        const res = await utils_1.Task.default.retryTaskUntilDone(async () => {
-            let provider = this.provider;
-            if (!provider && this.providers.length > 1) {
-                for (let index = 0; index < 3; index++) {
-                    await new Promise(r => setTimeout(r, 1000));
-                    provider = this.provider;
-                }
+        let provider = this.provider;
+        if (!provider && this.providers.length > 1) {
+            for (let index = 0; index < 3; index++) {
+                await new Promise(r => setTimeout(r, 1000));
+                provider = this.provider;
             }
-            if (!provider) {
-                throw new Error("no provider available");
-            }
-            provider.newRequest();
-            const response = await provider.request({
-                id: provider.requests + 1,
-                jsonrpc: "2.0",
-                method: request.method,
-                params: request.params
-            });
-            return response;
-        }, this.options.tasks?.timeout, this.options.tasks?.waitBetweenAttempts, this.options.tasks?.maxRetries);
-        return res?.result;
+        }
+        if (!provider) {
+            throw new Error("no provider available");
+        }
+        provider.newRequest();
+        const response = await provider.request({
+            id: provider.requests + 1,
+            jsonrpc: "2.0",
+            method: request.method,
+            params: request.params
+        });
+        return response;
     }
     async request(request) {
-        const res = await utils_1.Task.default.retryTaskUntilDone(async () => {
-            let provider = this.provider;
-            if (!provider && this.providers.length > 1) {
-                for (let index = 0; index < 3; index++) {
-                    await new Promise(r => setTimeout(r, 1000));
-                    provider = this.provider;
-                    if (provider)
-                        break;
-                }
+        let provider = this.provider;
+        if (!provider && this.providers.length > 1) {
+            for (let index = 0; index < 3; index++) {
+                await new Promise(r => setTimeout(r, 1000));
+                provider = this.provider;
+                if (provider)
+                    break;
             }
-            if (!provider) {
-                throw new Error("no provider available");
-            }
-            provider.newRequest();
-            const response = await provider.request({
-                id: provider.requests + 1,
-                jsonrpc: "2.0",
-                method: request.method,
-                params: request.params
-            });
-            return response;
-        }, this.options.tasks?.timeout, this.options.tasks?.waitBetweenAttempts, this.options.tasks?.maxRetries);
-        return res?.result;
+        }
+        if (!provider) {
+            throw new Error("no provider available");
+        }
+        provider.newRequest();
+        const response = await provider.request({
+            id: provider.requests + 1,
+            jsonrpc: "2.0",
+            method: request.method,
+            params: request.params
+        });
+        return response;
     }
 }
 exports.RoundRobinWS = RoundRobinWS;
