@@ -104,13 +104,13 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
                         this.debug && console.log("auto subscribe, subscription alias:", subscription.alias);
                         break;
                     } catch (error) {
-                        if (error instanceof ConnectionTimeoutError ) {
+                        if (error instanceof ConnectionTimeoutError) {
                             this.debug && console.log("conenction not open, reconnecting..");
                             try {
                                 this._reconnect();
                                 this.debug && console.log("reconnected")
                             } catch (error) {
-                                this.debug && console.log("error while reconnecting.. error:" , error);
+                                this.debug && console.log("error while reconnecting.. error:", error);
                             }
                         }
                         await new Promise(r => setTimeout(r, 500));
@@ -119,19 +119,26 @@ export class WSProvider extends WebSocketProvider implements IWSProvider {
             }
             this.onMessageHandler();
         });
-        this.on("close", () => {
-            this.$available = false;
-            for (let subscription in this.subscriptionsMapping) {
-                delete this.subscriptionIdToAlias[subscription];
-            }
+        this.on("close", async (reason: any) => {
+            await new Promise(r => setTimeout(r, 1000));
+            this.debug && console.log("connection closed becuase of", reason)
+            this.connect();
+            // this.$available = false;
+            // for (let subscription in this.subscriptionsMapping) {
+            //     delete this.subscriptionIdToAlias[subscription];
+            // }
         });
+        this.on("end", async (reason: any) => {
+            await new Promise(r => setTimeout(r, 1000));
+            this.debug && console.log("connection ended becuase of", reason)
+            this.connect();
+        })
         this.on("error", (error: any) => {
             if (this._disableClientOnError && this._disableClientOnError(error)) {
                 this.$available = false;
-                try {
-                    this.disconnect();
-                } catch (error) { }
-                this.$available = false; // to make sure its false in term of the ws tries to reconnect while is manually disconnecting
+                // try {
+                //     this.disconnect();
+                // } catch (error) { }
             }
         })
     }

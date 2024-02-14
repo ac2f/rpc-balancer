@@ -120,20 +120,26 @@ class WSProvider extends web3_1.WebSocketProvider {
             }
             this.onMessageHandler();
         });
-        this.on("close", () => {
-            this.$available = false;
-            for (let subscription in this.subscriptionsMapping) {
-                delete this.subscriptionIdToAlias[subscription];
-            }
+        this.on("close", async (reason) => {
+            await new Promise(r => setTimeout(r, 1000));
+            this.debug && console.log("connection closed becuase of", reason);
+            this.connect();
+            // this.$available = false;
+            // for (let subscription in this.subscriptionsMapping) {
+            //     delete this.subscriptionIdToAlias[subscription];
+            // }
+        });
+        this.on("end", async (reason) => {
+            await new Promise(r => setTimeout(r, 1000));
+            this.debug && console.log("connection ended becuase of", reason);
+            this.connect();
         });
         this.on("error", (error) => {
             if (this._disableClientOnError && this._disableClientOnError(error)) {
                 this.$available = false;
-                try {
-                    this.disconnect();
-                }
-                catch (error) { }
-                this.$available = false; // to make sure its false in term of the ws tries to reconnect while is manually disconnecting
+                // try {
+                //     this.disconnect();
+                // } catch (error) { }
             }
         });
     }
