@@ -110,9 +110,9 @@ class RoundRobinWS {
         }
     }
     async init(rpcList) {
-        let results = [];
+        let promises = [];
         for (let i = 0; i < rpcList.length; i++) {
-            const result = await new Promise(async (resolve, reject) => {
+            promises.push(new Promise(async (resolve, reject) => {
                 this.currentProviderIndex = i;
                 const address = rpcList[i];
                 if (!new RegExp(`^(ws|wss):\/\/`).test(address)) {
@@ -127,12 +127,9 @@ class RoundRobinWS {
                     clearTimeout(rejectTimeout);
                 });
                 this.providers.push(provider);
-            });
-            if (!result)
-                continue;
-            results.push(result);
+            }));
         }
-        return results;
+        return (await Promise.all(promises)).filter(v => !!v);
     }
     async sendAsync(request, callback) {
         let provider = this.provider;

@@ -112,9 +112,9 @@ export class RoundRobinWS {
         }
     }
     async init(rpcList: string[]): Promise<ProviderConnectInfo[]> {
-        let results: ProviderConnectInfo[] = []
+        let promises = []
         for (let i = 0; i < rpcList.length; i++) {
-            const result: ProviderConnectInfo | null = await new Promise(async (resolve, reject) => {
+            promises.push(new Promise(async (resolve, reject) => {
                 this.currentProviderIndex = i;
                 const address = rpcList[i];
                 if (!new RegExp(`^(ws|wss):\/\/`).test(address)) {
@@ -129,11 +129,9 @@ export class RoundRobinWS {
                     clearTimeout(rejectTimeout);
                 });
                 this.providers.push(provider);
-            });
-            if (!result) continue;
-            results.push(result);
+            }));
         }
-        return results;
+        return (await Promise.all(promises)).filter(v => !!v) as ProviderConnectInfo[];
     }
     public async sendAsync(request: { method: string, params?: Array<any> }, callback: (error: any, response: any) => void): Promise<any> {
         let provider = this.provider;
