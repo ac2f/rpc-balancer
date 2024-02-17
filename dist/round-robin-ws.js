@@ -110,27 +110,17 @@ class RoundRobinWS {
         }
     }
     async init(rpcList) {
-        let results = [];
         for (let i = 0; i < rpcList.length; i++) {
-            const result = await new Promise(async (resolve, reject) => {
-                this.currentProviderIndex = i;
-                const address = rpcList[i];
-                if (!new RegExp(`^(ws|wss):\/\/`).test(address)) {
-                    throw new Error("Address must be a websocket endpoint");
-                }
-                const provider = new ws_provider_1.WSProvider(address, this.options.client, this.options.reconnect, this.options.disableClientOnError, this.options.debug);
-                const rejectTimeout = setTimeout(() => {
-                    reject(new Error(`connection to "${address}" timed out`));
-                }, this.options.connectionTimeout);
-                provider.on("connect", (providerConnectionInfo) => {
-                    resolve(providerConnectionInfo);
-                    clearTimeout(rejectTimeout);
-                });
-                this.providers.push(provider);
-            });
-            results.push(result);
+            this.currentProviderIndex = i;
+            const address = rpcList[i];
+            if (!new RegExp(`^(ws|wss):\/\/`).test(address)) {
+                throw new Error("Address must be a websocket url");
+            }
+            const provider = new ws_provider_1.WSProvider(address, this.options.client, this.options.reconnect, this.options.disableClientOnError, this.options.debug);
+            this.providers.push(provider);
         }
-        return results;
+        ;
+        return [];
     }
     async sendAsync(request, callback) {
         let provider = this.provider;
