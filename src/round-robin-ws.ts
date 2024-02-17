@@ -114,7 +114,7 @@ export class RoundRobinWS {
     async init(rpcList: string[]): Promise<ProviderConnectInfo[]> {
         let results: ProviderConnectInfo[] = []
         for (let i = 0; i < rpcList.length; i++) {
-            const result: ProviderConnectInfo = await new Promise(async (resolve, reject) => {
+            const result: ProviderConnectInfo | null = await new Promise(async (resolve, reject) => {
                 this.currentProviderIndex = i;
                 const address = rpcList[i];
                 if (!new RegExp(`^(ws|wss):\/\/`).test(address)) {
@@ -122,7 +122,7 @@ export class RoundRobinWS {
                 }
                 const provider = new WSProvider(address, this.options.client, this.options.reconnect, this.options.disableClientOnError, this.options.debug);
                 const rejectTimeout = setTimeout(() => {
-                    reject(new Error(`connection to "${address}" timed out`));
+                    resolve(null);
                 }, this.options.connectionTimeout);
                 provider.on("connect", (providerConnectionInfo) => {
                     resolve(providerConnectionInfo);
@@ -130,7 +130,7 @@ export class RoundRobinWS {
                 });
                 this.providers.push(provider);
             });
-            if (!result ) continue;
+            if (!result) continue;
             results.push(result);
         }
         return results;
